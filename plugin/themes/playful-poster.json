@@ -1,0 +1,38 @@
+{
+  "name": "playful-poster",
+  "displayName": "Playful Poster",
+  "description": "Saturated cream background with magenta + yellow accents. More chroma than the others. Consumer / launch announcement / cultural manifesto feel.",
+  "background": "#FFF8E7",
+  "foreground": "#1A0F2E",
+  "mutedForeground": "#6B5B7A",
+  "border": "#E8DCC8",
+  "surfaceBase": "#FFF8E7",
+  "surfaceSubtle": "#FBEFD3",
+  "surfaceRaised": "#FFFFFF",
+  "success": "#16A34A",
+  "info": "#7C3AED",
+  "warning": "#F59E0B",
+  "destructive": "#DC2626",
+  "fontDisplay": "'Fraunces', 'Playfair Display', Georgia, serif",
+  "fontBody": "'Inter', sans-serif",
+  "fontMono": "'JetBrains Mono', ui-monospace, monospace",
+  "radius": { "sm": "0.5rem", "md": "0.75rem", "lg": "1rem", "xl": "1.5rem" },
+  "shadow": {
+    "sm": "0 2px 4px rgb(26 15 46 / 0.08)",
+    "md": "0 8px 16px rgb(26 15 46 / 0.12)",
+    "lg": "0 24px 48px rgb(26 15 46 / 0.16)"
+  },
+  "connectorPalette": {
+    "drive": "#4285F4",
+    "slack": "#ECB22E",
+    "github": "#181717",
+    "notion": "#000000",
+    "onedrive": "#0078D4",
+    "salesforce": "#00A1E0",
+    "jira": "#0052CC",
+    "confluence": "#172B4D",
+    "teams": "#5059C9",
+    "linear": "#5E6AD2"
+  },
+  "accent": ["#EC4899", "#FBBF24"]
+}

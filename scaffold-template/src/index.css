@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * CSS variable defaults mirror the THEME object in `./deck/tokens.ts`.
+ * T014's tokens-emitter overwrites this :root block at scaffold time so the
+ * generated deck ships with the user's chosen palette baked in.
+ */
+:root {
+  --background: #0A0E1A;
+  --foreground: #F5F7FA;
+  --muted-foreground: #8A93A6;
+  --border: #1F2937;
+  --surface-base: #0F1420;
+  --surface-subtle: #151A28;
+  --surface-raised: #1C2333;
+  --success: #10B981;
+  --info: #3B82F6;
+  --warning: #F59E0B;
+  --destructive: #EF4444;
+  --font-display: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+}
+
+body {
+  @apply bg-background text-foreground font-body antialiased;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}

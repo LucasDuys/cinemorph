@@ -1,0 +1,38 @@
+{
+  "name": "minimal-mono",
+  "displayName": "Minimal Mono",
+  "description": "Pure white background, pure black foreground, grayscale only. No chroma. Maximally restrained — typography does all the work.",
+  "background": "#FFFFFF",
+  "foreground": "#000000",
+  "mutedForeground": "#737373",
+  "border": "#D4D4D4",
+  "surfaceBase": "#FFFFFF",
+  "surfaceSubtle": "#F5F5F5",
+  "surfaceRaised": "#FAFAFA",
+  "success": "#404040",
+  "info": "#525252",
+  "warning": "#737373",
+  "destructive": "#000000",
+  "fontDisplay": "'Times New Roman', Georgia, serif",
+  "fontBody": "Inter, system-ui, sans-serif",
+  "fontMono": "'Courier New', JetBrains Mono, ui-monospace, monospace",
+  "radius": { "sm": "0rem", "md": "0rem", "lg": "0rem", "xl": "0rem" },
+  "shadow": {
+    "sm": "none",
+    "md": "0 1px 0 rgb(0 0 0 / 0.1)",
+    "lg": "0 2px 0 rgb(0 0 0 / 0.15)"
+  },
+  "connectorPalette": {
+    "drive": "#000000",
+    "slack": "#000000",
+    "github": "#000000",
+    "notion": "#000000",
+    "onedrive": "#000000",
+    "salesforce": "#000000",
+    "jira": "#000000",
+    "confluence": "#000000",
+    "teams": "#000000",
+    "linear": "#000000"
+  },
+  "accent": ["#000000", "#737373"]
+}

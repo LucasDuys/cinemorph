@@ -1,0 +1,4 @@
+# forge: collab carve-out
+/.forge/*
+!/.forge/collab/
+!/.forge/collab/**

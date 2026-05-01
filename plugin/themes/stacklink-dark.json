@@ -1,0 +1,38 @@
+{
+  "name": "stacklink-dark",
+  "displayName": "Stacklink Dark",
+  "description": "Near-black canvas with monochromatic foreground. Restrained, EU-enterprise feel. Ported from C:/dev/stacklink-pitch-roundone/pitch-app/src/index.css (HSL converted to hex).",
+  "background": "#09090F",
+  "foreground": "#FAFAFA",
+  "mutedForeground": "#A1A1AA",
+  "border": "#27272A",
+  "surfaceBase": "#09090F",
+  "surfaceSubtle": "#27272A",
+  "surfaceRaised": "#1D1D21",
+  "success": "#22C55E",
+  "info": "#3B82F6",
+  "warning": "#F59E0B",
+  "destructive": "#EF4444",
+  "fontDisplay": "Space Grotesk, Inter, sans-serif",
+  "fontBody": "Inter, sans-serif",
+  "fontMono": "JetBrains Mono, ui-monospace, monospace",
+  "radius": { "sm": "0.375rem", "md": "0.5rem", "lg": "0.75rem", "xl": "1rem" },
+  "shadow": {
+    "sm": "0 1px 2px rgb(0 0 0 / 0.05)",
+    "md": "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+    "lg": "0 10px 15px -3px rgb(0 0 0 / 0.1)"
+  },
+  "connectorPalette": {
+    "drive": "#4285F4",
+    "slack": "#ECB22E",
+    "github": "#C9D1D9",
+    "notion": "#FFFFFF",
+    "onedrive": "#28A8EA",
+    "salesforce": "#00A1E0",
+    "jira": "#0052CC",
+    "confluence": "#172B4D",
+    "teams": "#5059C9",
+    "linear": "#5E6AD2"
+  },
+  "accent": ["#A855F7", "#06B6D4"]
+}
