@@ -4,56 +4,29 @@
 
 The Morph Deck composer is an agentic Claude invocation that generates complete `stages.ts` + `data.ts` TypeScript files from a brief, design tokens, and primitive manifest.
 
-The composer runs locally via the `claude` CLI binary. It reads your Anthropic API key from the environment, invokes Claude with a system prompt, and parses the JSON output.
+The composer runs locally via the `claude` CLI binary on PATH. The CLI authenticates with your Claude Code subscription, invokes Claude with a system prompt, and parses the JSON output. No API key environment variable is required.
 
-## API Key Configuration
+## Authentication
 
-The composer uses the `claude` CLI binary, which is installed as part of the Anthropic Claude CLI suite.
-
-### Getting the API Key
-
-1. Go to https://console.anthropic.com/
-2. Sign in or create an account
-3. Navigate to **API Keys**
-4. Create a new API key and copy it
-
-### Setting the API Key
-
-Set the `ANTHROPIC_API_KEY` environment variable:
-
-**Bash/Zsh:**
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
-
-**Windows (PowerShell):**
-
-```powershell
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
-```
-
-**Windows (Command Prompt):**
-
-```cmd
-set ANTHROPIC_API_KEY=sk-ant-...
-```
-
-Or add it to your shell profile (`.bashrc`, `.zshrc`, or PowerShell profile) to persist across sessions.
+The composer relies on the `claude` CLI being on PATH and already authenticated against your Claude Code subscription. If you can run `claude` from a terminal in this session, the composer will work.
 
 ### Verify the Setup
-
-Run:
 
 ```bash
 claude --version
 ```
 
-If the command is not found, install the Claude CLI:
+If the command is not found, install Claude Code from https://claude.com/claude-code and sign in. Once `claude --version` returns without error, no further auth setup is needed.
+
+### Stub Mode (Tests Only)
+
+For tests, swap in a deterministic stub binary via the `MORPH_DECK_FAKE_CLAUDE` env var:
 
 ```bash
-npm install -g @anthropic-ai/claude-cli
+MORPH_DECK_FAKE_CLAUDE=/path/to/stub.js node --test plugin/scripts/__tests__/composer.test.cjs
 ```
+
+This is the only env-var path the composer reads. There is no `ANTHROPIC_API_KEY` flow.
 
 ## How the Composer Works
 
@@ -206,8 +179,8 @@ Available models (consult https://docs.anthropic.com/ for latest):
 ## Example: Full Workflow
 
 ```bash
-# 1. Set API key
-export ANTHROPIC_API_KEY="sk-ant-..."
+# 1. Verify claude CLI is on PATH and signed in (one-time setup)
+claude --version
 
 # 2. Create a new deck from a brief
 /morph-deck new \
@@ -235,17 +208,11 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 **Q: `claude` command not found**
 
-A: Install the Claude CLI:
-```bash
-npm install -g @anthropic-ai/claude-cli
-```
+A: Install Claude Code from https://claude.com/claude-code and sign in. Then `claude --version` should work.
 
-**Q: "ANTHROPIC_API_KEY is missing"**
+**Q: Composer fails with an auth error**
 
-A: Set the environment variable:
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
+A: Run `claude --version` interactively to confirm you are signed in to your Claude Code subscription. The composer inherits whatever credentials the CLI has.
 
 **Q: Composer times out (60 seconds)**
 
@@ -257,7 +224,6 @@ A: The brief may be too long or the request too complex. Try:
 **Q: JSON parse error**
 
 A: The LLM output did not contain a valid JSON object. Check:
-- Is `ANTHROPIC_API_KEY` set correctly?
 - Is the `claude` CLI version current?
 - Try running again (transient issue)
 

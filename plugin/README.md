@@ -220,7 +220,7 @@ How it works:
 3. **Output**: a single JSON object containing `stagesTs` and `dataTs` as strings
 4. **Constraints**: 8000 max output tokens, 60-second wall time
 
-The Claude CLI reads your `ANTHROPIC_API_KEY` environment variable. For testing, set `MORPH_DECK_FAKE_CLAUDE=/path/to/stub` to use a stub binary instead.
+Authentication is handled by the `claude` CLI on PATH (uses your Claude Code subscription). No API key environment variable is required. For testing, set `MORPH_DECK_FAKE_CLAUDE=/path/to/stub` to swap in a stub binary.
 
 See `plugin/docs/composer-live.md` for detailed wiring documentation and examples.
 
