@@ -10,3 +10,7 @@ __pycache__/
 
 # scratch
 .test-mock/
+
+# plugin-level node_modules symlink (T003: points to scaffold-template/node_modules
+# for bun test resolution of plugin/__tests__ files)
+plugin/node_modules/

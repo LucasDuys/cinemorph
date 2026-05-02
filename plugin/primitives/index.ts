@@ -1,4 +1,7 @@
 export { default as Wordmark } from './Wordmark';
+export { default as Element3D } from './Element3D';
+export type { Element3DProps, Geometry3D, Material3D } from './Element3D';
+export { default as Element3DOverlay } from './Element3DOverlay';
 export { default as ConnectorChip } from './ConnectorChip';
 export { default as KPI } from './KPI';
 export { default as Card } from './Card';

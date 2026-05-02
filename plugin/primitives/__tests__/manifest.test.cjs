@@ -24,6 +24,9 @@ const EXPECTED_PRIMITIVES = [
   'Icon',
   'Chart',
   'MorphChart',
+  // T003: 3D entry point primitives
+  'Element3D',
+  'Element3DOverlay',
 ];
 
 function listTsxFiles(dir) {
@@ -71,7 +74,9 @@ test('index.ts exists and exports all primitives by name', () => {
 
 test('primitives have no outer motion.div wrapper (MorphBox handles wrapping)', () => {
   const tsxFiles = listTsxFiles(PRIMITIVES_DIR);
-  const exceptions = new Set(['ConnectorChip', 'MorphChart', 'OrbitGroup', 'PipelineGroup', 'FooterStrip']);
+  // T003: Element3D uses motion.div in its ErrorBoundary fallback (valid).
+  // Element3DOverlay is a portal wrapper (no motion usage).
+  const exceptions = new Set(['ConnectorChip', 'MorphChart', 'OrbitGroup', 'PipelineGroup', 'FooterStrip', 'Element3D']);
 
   for (const fileName of tsxFiles) {
     if (exceptions.has(fileName.replace('.tsx', ''))) {

@@ -1,0 +1,5 @@
+{
+  "name": "morph-deck-plugin",
+  "private": true,
+  "type": "module"
+}
