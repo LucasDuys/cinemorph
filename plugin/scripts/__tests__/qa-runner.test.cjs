@@ -1,4 +1,5 @@
 // T006: qa-runner.test.cjs — unit tests for qa-runner.cjs.
+// T009: adds runQALoop tests (retry loop, cost telemetry, --no-qa).
 // Uses node:test. _fakeClaudeBin injected to avoid real API calls.
 
 'use strict';
@@ -9,7 +10,7 @@ const fs     = require('node:fs');
 const os     = require('node:os');
 const path   = require('node:path');
 
-const { evaluateStage } = require('../qa-runner.cjs');
+const { evaluateStage, runQALoop, composeStageRevision } = require('../qa-runner.cjs');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -345,4 +346,262 @@ test('evaluateStage throws before any CLI call when PNG > 5MB', () => {
   } finally {
     fs.unlinkSync(tmpFile);
   }
+});
+
+// ---------------------------------------------------------------------------
+// T009: runQALoop — --no-qa flag skips immediately
+// ---------------------------------------------------------------------------
+
+test('runQALoop with noQa=true prints skip message and returns immediately', async () => {
+  let output = '';
+  const _print = (msg) => { output += msg + '\n'; };
+
+  const result = await runQALoop({
+    deckPath: os.tmpdir(),
+    noQa: true,
+    _print,
+    _evaluateFn: () => { throw new Error('should not be called'); },
+    _renderFn:   () => { throw new Error('should not be called'); },
+  });
+
+  assert.ok(result.skipped === true, 'result.skipped must be true when noQa');
+  assert.ok(/skip/i.test(output), 'must print a skip message');
+});
+
+// ---------------------------------------------------------------------------
+// T009: runQALoop — 3 stages, one has overall=5 → triggers exactly 1 retry
+// ---------------------------------------------------------------------------
+
+test('runQALoop with 3 stages where stage-2 has overall=5 triggers exactly 1 retry', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-loop-test-'));
+  const morphDir = path.join(tmpDir, '.morph-deck');
+  fs.mkdirSync(morphDir, { recursive: true });
+
+  const stages = [
+    { id: 'slide-1', caption: { headline: 'Intro', eyebrow: 'Opening' } },
+    { id: 'slide-2', caption: { headline: 'Problem', eyebrow: 'Context' } },
+    { id: 'slide-3', caption: { headline: 'Solution', eyebrow: 'Answer' } },
+  ];
+
+  // slide-2 fails on first eval, passes on retry.
+  let evaluateCallCount = 0;
+  const _evaluateFn = ({ stageId }) => {
+    evaluateCallCount++;
+    if (stageId === 'slide-2' && evaluateCallCount === 2) {
+      // Retry call — pass this time.
+      return { scores: { legibility:8, overlap:8, hierarchy:8, brand:8, composition:8, onbrand:8, cinematic:8, overall:8 }, issues: [] };
+    }
+    if (stageId === 'slide-2') {
+      // First eval — fail.
+      return { scores: { legibility:4, overlap:5, hierarchy:5, brand:5, composition:4, onbrand:4, cinematic:4, overall:5 }, issues: [{ severity:'major', what:'Low contrast', where:'body', fix_suggestion:'Increase contrast' }] };
+    }
+    return { scores: { legibility:8, overlap:8, hierarchy:8, brand:8, composition:8, onbrand:8, cinematic:8, overall:8 }, issues: [] };
+  };
+
+  let composeCallCount = 0;
+  const _composeFn = () => { composeCallCount++; return { ok: true }; };
+
+  // No render subprocess needed — skip.
+  const _renderFn = () => {};
+
+  // Suppress output.
+  const _print = () => {};
+
+  // Fake stdin — should not be prompted since all stages pass after retry.
+  const _stdin = { question: (_prompt, cb) => cb('accept') };
+
+  const result = await runQALoop({
+    deckPath: tmpDir,
+    stages,
+    _evaluateFn,
+    _composeFn,
+    _renderFn,
+    _print,
+    _stdin,
+  });
+
+  // Exactly 1 retry fired (for slide-2 first eval failure).
+  assert.equal(composeCallCount, 1, 'exactly 1 compose retry must be triggered');
+
+  // evaluateStage called 4 times: 3 initial evals + 1 retry eval.
+  assert.equal(evaluateCallCount, 4, 'evaluateStage must be called 4 times (3 evals + 1 retry)');
+
+  // qa-history.jsonl must exist with 4 entries.
+  const historyPath = path.join(tmpDir, '.morph-deck', 'qa-history.jsonl');
+  assert.ok(fs.existsSync(historyPath), 'qa-history.jsonl must exist');
+  const lines = fs.readFileSync(historyPath, 'utf8').trim().split('\n').filter(Boolean);
+  assert.equal(lines.length, 4, 'qa-history.jsonl must have 4 entries (3 evals + 1 retry eval)');
+
+  // Each line must be valid JSON with ts, stageId, attempt, scores, issues, action.
+  for (const line of lines) {
+    const entry = JSON.parse(line);
+    assert.ok('ts' in entry, 'entry must have ts');
+    assert.ok('stageId' in entry, 'entry must have stageId');
+    assert.ok('attempt' in entry, 'entry must have attempt');
+    assert.ok('scores' in entry, 'entry must have scores');
+    assert.ok('issues' in entry, 'entry must have issues');
+    assert.ok('action' in entry, 'entry must have action');
+  }
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// T009: runQALoop — retry budget exhaustion triggers user prompt
+// ---------------------------------------------------------------------------
+
+test('runQALoop prompts user when retry budget exhausted and stage still failing', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-exhaust-test-'));
+  const morphDir = path.join(tmpDir, '.morph-deck');
+  fs.mkdirSync(morphDir, { recursive: true });
+
+  const stages = [
+    { id: 'slide-1', caption: { headline: 'A', eyebrow: 'A' } },
+  ];
+
+  // Always fail — forces MAX_STAGE_RETRIES exhaustion.
+  const _evaluateFn = () => ({
+    scores: { legibility:3, overlap:3, hierarchy:3, brand:3, composition:3, onbrand:3, cinematic:3, overall:3 },
+    issues: [{ severity:'critical', what:'Bad', where:'all', fix_suggestion:'Fix it' }],
+  });
+
+  const _composeFn = () => ({ ok: true });
+  const _renderFn = () => {};
+  const _print = () => {};
+
+  let promptFired = false;
+  const _stdin = {
+    question: (_prompt, cb) => {
+      promptFired = true;
+      cb('accept');
+    },
+  };
+
+  const result = await runQALoop({
+    deckPath: tmpDir,
+    stages,
+    _evaluateFn,
+    _composeFn,
+    _renderFn,
+    _print,
+    _stdin,
+  });
+
+  assert.ok(promptFired, 'user prompt must be fired after budget exhaustion');
+  assert.ok(result.userAction === 'accept', 'result.userAction must reflect user input');
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// T009: runQALoop — qa-history.jsonl has one entry per evaluation
+// ---------------------------------------------------------------------------
+
+test('runQALoop writes one qa-history entry per evaluation call', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-history-test-'));
+  fs.mkdirSync(path.join(tmpDir, '.morph-deck'), { recursive: true });
+
+  const stages = [
+    { id: 'slide-1', caption: { headline: 'X', eyebrow: 'X' } },
+    { id: 'slide-2', caption: { headline: 'Y', eyebrow: 'Y' } },
+  ];
+
+  // Both pass on first eval — no retries.
+  const _evaluateFn = () => ({
+    scores: { legibility:9, overlap:9, hierarchy:9, brand:9, composition:9, onbrand:9, cinematic:9, overall:9 },
+    issues: [],
+  });
+
+  const result = await runQALoop({
+    deckPath: tmpDir,
+    stages,
+    _evaluateFn,
+    _composeFn: () => ({ ok: true }),
+    _renderFn:  () => {},
+    _print:     () => {},
+    _stdin:     { question: (_, cb) => cb('accept') },
+  });
+
+  const historyPath = path.join(tmpDir, '.morph-deck', 'qa-history.jsonl');
+  const lines = fs.readFileSync(historyPath, 'utf8').trim().split('\n').filter(Boolean);
+  assert.equal(lines.length, 2, 'exactly 2 entries for 2 stages with no retries');
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// T009: runQALoop — composeStageRevision is exported and callable
+// ---------------------------------------------------------------------------
+
+test('composeStageRevision is exported from qa-runner.cjs', () => {
+  assert.ok(typeof composeStageRevision === 'function', 'composeStageRevision must be a function');
+});
+
+// ---------------------------------------------------------------------------
+// T009: runQALoop — max deck retries cap (6) not exceeded
+// ---------------------------------------------------------------------------
+
+test('runQALoop does not exceed MAX_DECK_RETRIES=6 total retries across all stages', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-deck-budget-test-'));
+  fs.mkdirSync(path.join(tmpDir, '.morph-deck'), { recursive: true });
+
+  // 5 stages all failing — max deck budget = 6 means only 6 compose calls total.
+  const stages = Array.from({ length: 5 }, (_, i) => ({
+    id: `slide-${i + 1}`,
+    caption: { headline: `Stage ${i + 1}`, eyebrow: `S${i + 1}` },
+  }));
+
+  const _evaluateFn = () => ({
+    scores: { legibility:3, overlap:3, hierarchy:3, brand:3, composition:3, onbrand:3, cinematic:3, overall:3 },
+    issues: [{ severity:'critical', what:'Bad', where:'all', fix_suggestion:'Fix' }],
+  });
+
+  let composeCallCount = 0;
+  const _composeFn = () => { composeCallCount++; return { ok: true }; };
+
+  const result = await runQALoop({
+    deckPath: tmpDir,
+    stages,
+    _evaluateFn,
+    _composeFn,
+    _renderFn: () => {},
+    _print:    () => {},
+    _stdin:    { question: (_, cb) => cb('accept') },
+  });
+
+  // Must not exceed MAX_DECK_RETRIES = 6.
+  assert.ok(composeCallCount <= 6, `compose calls must not exceed 6, got ${composeCallCount}`);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// T009: runQALoop — actual cost summary printed after loop
+// ---------------------------------------------------------------------------
+
+test('runQALoop prints actual cost summary after loop completes', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-cost-summary-test-'));
+  fs.mkdirSync(path.join(tmpDir, '.morph-deck'), { recursive: true });
+
+  const stages = [
+    { id: 'slide-1', caption: { headline: 'A', eyebrow: 'A' } },
+  ];
+
+  let output = '';
+  const _print = (msg) => { output += msg + '\n'; };
+
+  await runQALoop({
+    deckPath: tmpDir,
+    stages,
+    _evaluateFn: () => ({ scores: { legibility:9, overlap:9, hierarchy:9, brand:9, composition:9, onbrand:9, cinematic:9, overall:9 }, issues: [] }),
+    _composeFn:  () => ({ ok: true }),
+    _renderFn:   () => {},
+    _print,
+    _stdin: { question: (_, cb) => cb('accept') },
+  });
+
+  // Must print actual cost summary (calls, retries, cost).
+  assert.ok(/call|QA complete/i.test(output), 'must print QA complete / cost summary');
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 });

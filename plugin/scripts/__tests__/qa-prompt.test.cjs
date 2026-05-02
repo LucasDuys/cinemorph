@@ -12,6 +12,7 @@ const path   = require('node:path');
 const {
   buildSystemPrompt,
   buildUserPrompt,
+  buildSystemPromptWith3D,
 } = require('../qa-prompt.cjs');
 
 // ---------------------------------------------------------------------------
@@ -212,4 +213,95 @@ test('buildUserPrompt text block includes resolved token values', () => {
   } finally {
     fs.unlinkSync(tmpFile);
   }
+});
+
+// ---------------------------------------------------------------------------
+// buildSystemPromptWith3D — 3D extension axes presence
+// ---------------------------------------------------------------------------
+
+test('buildSystemPromptWith3D returns a non-empty string', () => {
+  const prompt = buildSystemPromptWith3D();
+  assert.ok(typeof prompt === 'string' && prompt.length > 0, 'prompt must be a non-empty string');
+});
+
+test('buildSystemPromptWith3D contains all 7 original rubric axes', () => {
+  const prompt = buildSystemPromptWith3D();
+  const axes = ['legibility', 'overlap', 'hierarchy', 'brand', 'composition', 'onbrand', 'cinematic'];
+  axes.forEach(axis => {
+    assert.ok(
+      prompt.toLowerCase().includes(axis),
+      `must contain original axis "${axis}"`
+    );
+  });
+});
+
+test('buildSystemPromptWith3D contains "spatial coherence" rubric axis', () => {
+  const prompt = buildSystemPromptWith3D();
+  assert.ok(
+    prompt.toLowerCase().includes('spatial coherence'),
+    'must contain "spatial coherence" axis'
+  );
+});
+
+test('buildSystemPromptWith3D contains "motion sensibility" rubric axis', () => {
+  const prompt = buildSystemPromptWith3D();
+  assert.ok(
+    prompt.toLowerCase().includes('motion sensibility'),
+    'must contain "motion sensibility" axis'
+  );
+});
+
+test('buildSystemPromptWith3D contains "tasteful" rubric axis', () => {
+  const prompt = buildSystemPromptWith3D();
+  const lowerPrompt = prompt.toLowerCase();
+  // Check for "tasteful" as a standalone word or "tasteful vs gratuitous"
+  assert.ok(
+    lowerPrompt.includes('tasteful'),
+    'must contain "tasteful" axis'
+  );
+});
+
+test('buildSystemPromptWith3D extended JSON schema includes spatial, motion_sensibility, tasteful scores', () => {
+  const prompt = buildSystemPromptWith3D();
+  assert.ok(
+    prompt.includes('"spatial"'),
+    'schema must include "spatial" score field'
+  );
+  assert.ok(
+    prompt.includes('"motion_sensibility"'),
+    'schema must include "motion_sensibility" score field'
+  );
+  assert.ok(
+    prompt.includes('"tasteful"'),
+    'schema must include "tasteful" score field'
+  );
+});
+
+test('buildSystemPrompt remains unchanged with 7 axes only', () => {
+  const prompt = buildSystemPrompt();
+  // Should NOT contain any of the 3D-specific axis names.
+  assert.ok(!prompt.toLowerCase().includes('spatial coherence'), 'base prompt should not include spatial coherence');
+  assert.ok(!prompt.toLowerCase().includes('motion sensibility'), 'base prompt should not include motion sensibility');
+  // Note: "tasteful" might appear in English elsewhere, so check for the full pattern.
+  // Instead verify the schema doesn't include the 3D score keys.
+  assert.ok(!prompt.includes('"spatial"'), 'base schema must not include spatial score');
+  assert.ok(!prompt.includes('"motion_sensibility"'), 'base schema must not include motion_sensibility score');
+  assert.ok(!prompt.includes('"tasteful"'), 'base schema must not include tasteful score');
+});
+
+test('buildSystemPromptWith3D includes r3f-targeted fix suggestions guidance', () => {
+  const prompt = buildSystemPromptWith3D();
+  // Check for guidance on r3f prop fix suggestions.
+  assert.ok(
+    prompt.toLowerCase().includes('rotationspeed') || prompt.toLowerCase().includes('rotation_speed') || prompt.toLowerCase().includes('reduce'),
+    'should include guidance on rotationSpeed reduction'
+  );
+  assert.ok(
+    prompt.toLowerCase().includes('count'),
+    'should include guidance on point/cube count reduction'
+  );
+  assert.ok(
+    prompt.toLowerCase().includes('geometry') || prompt.toLowerCase().includes('box'),
+    'should include guidance on geometry switching'
+  );
 });

@@ -1,19 +1,24 @@
 // T006: qa-runner.cjs — vision-QA model client.
+// T009: retry loop + cost telemetry + --no-qa flag.
 //
 // Calls the Claude CLI with a vision prompt and returns structured QA scores.
-// Extended in-place by T009 (retry loop + cost telemetry).
+// runQALoop orchestrates the full per-stage QA + retry cycle.
 //
 // Usage:
-//   const { evaluateStage } = require('./qa-runner.cjs');
+//   const { evaluateStage, runQALoop, composeStageRevision } = require('./qa-runner.cjs');
 //   const result = await evaluateStage({ pngPath, stageName, captionText, tokens, model? });
+//   const loopResult = await runQALoop({ deckPath, stages, mainOnly, noQa, dryRun });
 //
-// Returns: { scores: { legibility, overlap, hierarchy, brand, composition, onbrand, cinematic, overall }, issues: [] }
+// Returns from evaluateStage: { scores: {...}, issues: [] }
+// Returns from runQALoop: { skipped?, aborted?, userAction?, callCount, retryCount, estimatedCost, actualCost }
 // Throws on malformed response or CLI failure.
 
 'use strict';
 
 const cp   = require('node:child_process');
+const fs   = require('node:fs');
 const path = require('node:path');
+const readline = require('node:readline');
 
 const { buildSystemPrompt, buildUserPrompt } = require('./qa-prompt.cjs');
 
