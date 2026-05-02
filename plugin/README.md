@@ -148,10 +148,9 @@ Or use a visual reference image to auto-extract a palette:
 
 ## Primitives
 
-Fourteen composable elements for deck composition:
+Sixteen composable elements for deck composition:
 
 - **Wordmark** — Logo / product name header
-- **Caption** — Eyebrow + headline + sub (always-visible title bar)
 - **KPI** — Key performance indicator (value + label pair)
 - **Pillar** — Portrait card (name, role, background image)
 - **Quote** — Pull quote with attribution
@@ -160,6 +159,9 @@ Fourteen composable elements for deck composition:
 - **Logo** — Inline logo / brand asset
 - **Image** — Photo or diagram with fade-in
 - **Diagram** — SVG or PNG architecture diagram
+- **Icon** — Inline icon or symbol
+- **Chart** — Data visualization component
+- **MorphChart** — Animated chart with FLIP transitions
 - **OrbitGroup** — Circular arrangement of elements (radial layout)
 - **PipelineGroup** — Linear flow diagram (left-to-right process)
 - **FooterStrip** — Persistent footer bar (often for slide number or branding)
