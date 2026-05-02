@@ -1,18 +1,22 @@
-# Morph-Deck Plugin
+# Cinemorph Plugin
+
+> Renamed from `morph-deck` in v1.1.0. The old `/cinemorph` command continues to work as an alias.
 
 ## What It Is
 
-Morph-Deck generates launch-video-style React presentations with shared-layout (FLIP) morph transitions between stages. Given a brief and design tokens, the composer emits a complete, production-ready Vite + React deck. Outputs: live React deck (dev server + hot reload), PPTX with native Morph transitions, MP4 video (30s–5m cinematic export), and speaker notes with presenter cues.
+Cinemorph generates cinematic launch-video-style React presentations with shared-layout (FLIP) morph transitions between stages. Given a brief and design tokens, the composer emits a complete, production-ready Vite + React deck. Outputs: live React deck (dev server + hot reload), PPTX with native Morph transitions, MP4 video (30s–5m cinematic export), and speaker notes with presenter cues.
+
+For cinematic launch-video output, the composer applies the principles in `docs/cinematic-launch-video-lessons.md` — every rule there was earned by shipping a real 30-second video and getting each detail wrong before getting it right. Audio bus race-condition fix, scene-transition vs internal-animation SFX placement, autoplay gate, dev scrubber, ffmpeg seek-mode trap, and the volume hierarchy are all baked in.
 
 ## Install
 
-Copy the `plugin/` directory into `~/.claude/plugins/morph-deck/`:
+Copy the `plugin/` directory into `~/.claude/plugins/cinemorph/`:
 
 ```bash
-cp -r plugin ~/.claude/plugins/morph-deck
+cp -r plugin ~/.claude/plugins/cinemorph
 ```
 
-After installation, restart your Claude session to activate the plugin. You can then invoke the plugin via the `/morph-deck` command.
+After installation, restart your Claude session to activate the plugin. You can then invoke the plugin via the `/cinemorph` command (or `/cinemorph` for backwards compatibility).
 
 ## Quick Start
 
@@ -21,7 +25,7 @@ After installation, restart your Claude session to activate the plugin. You can 
 Generate a deck from a brief text:
 
 ```bash
-/morph-deck new --theme stacklink-dark --prompt "Series A pitch for Stacklink: problem, solution, traction, team, ask"
+/cinemorph new --theme stacklink-dark --prompt "Series A pitch for Stacklink: problem, solution, traction, team, ask"
 ```
 
 Output: a new deck directory with `src/deck/stages.ts`, `src/deck/data.ts`, and a live dev server ready at `localhost:5173`.
@@ -31,7 +35,7 @@ Output: a new deck directory with `src/deck/stages.ts`, `src/deck/data.ts`, and 
 Start from a bundled template and customize it:
 
 ```bash
-/morph-deck new --from-example pitch-5slide --out ./my-pitch
+/cinemorph new --from-example pitch-5slide --out ./my-pitch
 ```
 
 Available example decks:
@@ -51,7 +55,7 @@ Available example decks:
 Regenerate slides in an existing deck:
 
 ```bash
-/morph-deck iterate --deck ./my-pitch --prompt "make slide 3 more cinematic, less text"
+/cinemorph iterate --deck ./my-pitch --prompt "make slide 3 more cinematic, less text"
 ```
 
 ### Render (Dev Server)
@@ -59,7 +63,7 @@ Regenerate slides in an existing deck:
 Start the live development server for a deck:
 
 ```bash
-/morph-deck render --deck ./my-pitch
+/cinemorph render --deck ./my-pitch
 ```
 
 Opens `http://localhost:5173` with hot reload. Press `?` in the deck for keyboard shortcuts (arrow keys to advance, B for backup slides, K for speaker view).
@@ -69,7 +73,7 @@ Opens `http://localhost:5173` with hot reload. Press `?` in the deck for keyboar
 Convert a deck to .pptx with native Morph transitions:
 
 ```bash
-/morph-deck pptx --deck ./my-pitch --out ./my-pitch.pptx
+/cinemorph pptx --deck ./my-pitch --out ./my-pitch.pptx
 ```
 
 Opens in PowerPoint with smooth Morph animations between slides (compatible with Office 2019 and later).
@@ -79,7 +83,7 @@ Opens in PowerPoint with smooth Morph animations between slides (compatible with
 Render a deck as MP4 (cinematic or standard speed):
 
 ```bash
-/morph-deck video --deck ./my-pitch --out ./my-pitch.mp4
+/cinemorph video --deck ./my-pitch --out ./my-pitch.mp4
 ```
 
 Records the deck at 60 FPS with audio narration (reads `talkTrack.script` from each stage).
@@ -89,7 +93,7 @@ Records the deck at 60 FPS with audio narration (reads `talkTrack.script` from e
 Create a self-contained .zip for email or web sharing:
 
 ```bash
-/morph-deck export --deck ./my-pitch --out ./my-pitch.zip
+/cinemorph export --deck ./my-pitch --out ./my-pitch.zip
 ```
 
 Includes the deck, a static HTML render, and speaker notes.
@@ -116,7 +120,7 @@ Five built-in themes with complete color palettes, typography, and spacing:
 Override any theme with your own token file:
 
 ```bash
-/morph-deck new --tokens ./my-tokens.json --prompt "Company all-hands"
+/cinemorph new --tokens ./my-tokens.json --prompt "Company all-hands"
 ```
 
 Token JSON shape:
@@ -143,7 +147,7 @@ Token JSON shape:
 Or use a visual reference image to auto-extract a palette:
 
 ```bash
-/morph-deck new --reference ./brand-screenshot.png --prompt "Q1 roadmap"
+/cinemorph new --reference ./brand-screenshot.png --prompt "Q1 roadmap"
 ```
 
 ## Primitives

@@ -138,6 +138,85 @@ Mark with `backup: true`. Backup stages are excluded from the main presentation 
 
 ---
 
+## Cinematic Launch-Video Mode (CRITICAL — read this when the brief asks for a cinematic launch video, 30-second teaser, motion-graphic product film, or anything driven by a master timeline)
+
+When the user's brief is a cinematic timeline-driven video (not a click-through pitch deck), follow the principles in **`plugin/docs/cinematic-launch-video-lessons.md`**. These were extracted from shipping a real 30-second launch video and getting every detail wrong before getting it right. Bake them in at composition time so the user does not have to iterate on these specific bugs again.
+
+The non-negotiables:
+
+### Master clock + phases
+- ONE RAF clock writes a single `elapsedMs` state. All scenes read from it. Never give a scene its own timer.
+- Phases are non-overlapping windows in a `PHASES` table. Use `SMEAR_MS = 350` cross-fades at boundaries.
+
+### Easing
+- Use `aeBounce` (Dan Ebberts AE bounce, freq=3 decay=5) for any element that should "land with weight": logo pop, cylinder land, agent-tile bloom, source-pill arrival.
+
+### SFX placement (most-iterated topic — get this right)
+- Whooshes go ONLY on real scene transitions (where the entire visual context shifts). Do not place a whoosh on an internal animation event (a single tile bouncing in is a POP, not a whoosh).
+- Whooshes lead the visual impact by 300–500ms so the sweep + the new scene's snap reads as one cinematic cut.
+- POPs and BLIPs are for impact moments inside a scene. Different vocabulary from whooshes.
+- Long whoosh files always need `stopAtMs` to prevent bleed across scenes. Better: trim to short (~600–700ms) self-contained whooshes with built-in fades and drop `stopAtMs` entirely.
+
+### Audio bus invariants
+- The SFX engine MUST track a `stoppedSfxRef: Set<number>` so each cue's `stopAtMs` runs exactly once. Without this, when multiple cues share the same audio file via the pool, the first cue's stop check re-fires every frame and pauses every later cue the moment it starts. This was the single most painful bug. Bake the fix into the scaffold.
+- Pre-warm the SFX pool on first user interaction (`pointermove`/`click`/`keydown`/`touchstart` with `{ once: true }`). Play+pause each pool element while muted.
+- Browser autoplay requires a play-button gate. Render a transparent canvas-wide click area with a 64px play icon when `started === false`. Keep the audio bus paused via `paused || !started`.
+
+### Volume hierarchy (memorize)
+| Layer            | Volume     |
+|------------------|------------|
+| Music bed        | 0.20–0.25  |
+| Ducked music     | 0.05–0.08  |
+| VO               | 0.85–0.95  |
+| Whoosh (light)   | 0.30–0.40  |
+| POP (focal)      | 0.70–0.80  |
+| BLIP (subtle)    | 0.30–0.45  |
+| Click            | 0.70–0.80  |
+| Typing           | 0.85–0.95  |
+| Chime / shimmer  | 0.50–0.55  |
+
+Music ducks during the VO interval. Schema:
+```ts
+duckMusicOn: [[2500, 27500]],
+duckedVolume: 0.07,
+```
+
+### ffmpeg gotchas (note in any audio-trim docs you emit)
+- `-ss BEFORE -i` for input-seek. Output-seek with `afade` can produce silent files that pass duration checks.
+- Always volume-detect after a trim: `ffmpeg -i out.mp3 -af volumedetect -f null -`. If `mean_volume` is anywhere near `-90 dB`, the cut is silent.
+- Free SFX whoosh files often contain multiple stuttered whooshes back-to-back. Run silence-detect before using; trim to a single sweep.
+
+### Animation-vs-SFX matching
+- Do not start cylinder fill / progress fill / counter increments before their visible cause arrives. If chunks fly into a cylinder over 12.3–14.0s, the fill animation must run 12.3 → 14.0, not 10.5 → 13.8.
+- Typing audio cues lead the visual by 150–200ms (file lead-in silence) and stop with `stopAtMs` aligned to the last character landing.
+
+### Voiceover
+- `startAtMs` typically 2500ms — let the logo pop breathe first.
+- Plain conversational voice, ~138 WPM, no motivational lift on the closing line.
+
+### Dev scrubber (always include)
+- Activate via `?dev=1` in the URL. Render a fixed bottom bar with: play/pause, range input on `[0, TOTAL_MS]`, live `X.Xs / 30s` readout. Without this, every iteration becomes "the sound at around 7 seconds is wrong" and wastes cycles.
+
+### Audio config schema (use this verbatim)
+```ts
+export type AudioConfig = {
+  music?: { src: string; baseVolume?: number; loop?: boolean } | null;
+  vo?: { src: string; startAtMs?: number; volume?: number } | null;
+  duckMusicOn?: Array<[number, number]>;
+  duckedVolume?: number;
+  sfx?: Array<{ atMs: number; stopAtMs?: number; src: string; volume?: number }>;
+};
+```
+
+### Scaffold expectations for cinematic-video output
+A cinematic launch-video deck includes (in addition to the standard six-file deck):
+- `src/continuous/lib.ts` — `clamp01`, `easeOutCubic`, `easeInOutCubic`, `aeBounce`, `smearBlur`, `phaseClock`, `useAudioBus` (with the `stoppedSfxRef` fix), `STACKLINK_AUDIO`-style config export, `PHASES`, `TOTAL_MS`, `SMEAR_MS`.
+- `src/continuous/ContinuousLaunch.tsx` — RAF clock, scene composer, dev scrubber gated on `?dev=1`, autoplay gate.
+- `public/sfx/` — placeholder slots for `pop.mp3`, `click.mp3`, `typing.mp3`, `whoosh-soft.mp3`, `whoosh-converge.mp3`, `blip.mp3`, `url-chime.mp3`, `music-bed.mp3`.
+- `public/voiceover.mp3` — VO file slot.
+
+---
+
 ## Example 1 — Minimal 3-Stage Deck
 
 Input brief: "Three-slide intro for Stacklink: problem (fragmented knowledge), solution (unified search), proof (10k users)."
