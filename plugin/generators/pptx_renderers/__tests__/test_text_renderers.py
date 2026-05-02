@@ -20,9 +20,9 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.dml.color import RGBColor
 
 # Import renderers and registry
-from pptx_renderers import RENDERER_REGISTRY
-from pptx_renderers._base import RendererCtx
-from pptx_renderers import wordmark, caption, kpi, pillar, quote
+from generators.pptx_renderers import RENDERER_REGISTRY
+from generators.pptx_renderers._base import RendererCtx
+from generators.pptx_renderers import wordmark, caption, kpi, pillar, quote
 
 
 class TestWordmarkRenderer(unittest.TestCase):

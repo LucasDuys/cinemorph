@@ -8,10 +8,10 @@ Both lines stack vertically within a single textbox.
 from pptx.util import Pt, Emu
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
-from pptx_renderers._base import apply_morph_name, apply_opacity
-from pptx_renderers._colors import hex_to_rgb
-from lib.layout import resolve_layout
-from pptx_renderers import register_renderer
+from ._base import apply_morph_name, apply_opacity
+from ._colors import hex_to_rgb
+from ..lib.layout import resolve_layout
+from . import register_renderer
 
 
 @register_renderer('caption')
