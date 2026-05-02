@@ -205,21 +205,24 @@ async function navigateToStage(page, stageIndex) {
  * @param {boolean} [opts.mainOnly=false]
  * @param {number} [opts.port=5173]
  * @param {function} [opts.launchBrowser] - For testing
+ * @param {function} [opts.spawnPreview] - For testing
  * @returns {Promise<{ ok: boolean, results: any[], errors: string[] }>}
  */
 export async function renderStages(
   deckPath,
-  { mainOnly = false, port = 5173, launchBrowser = null } = {}
+  { mainOnly = false, port = 5173, launchBrowser = null, spawnPreview = null } = {}
 ) {
   const errors = [];
   const results = [];
 
-  // Start Vite preview server
-  const previewProc = spawn('bun', ['run', 'preview', '--port', String(port)], {
-    cwd: deckPath,
-    detached: false,
-    stdio: 'pipe',
-  });
+  // Start Vite preview server (or use mock for testing)
+  const previewProc = spawnPreview
+    ? spawnPreview()
+    : spawn('bun', ['run', 'preview', '--port', String(port)], {
+      cwd: deckPath,
+      detached: false,
+      stdio: 'pipe',
+    });
 
   let browser;
   try {
