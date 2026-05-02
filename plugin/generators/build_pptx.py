@@ -35,17 +35,18 @@ from pptx import Presentation
 from pptx.util import Emu
 
 # ─── Project helpers ───────────────────────────────────────────────────────
+# Imports from generators package so relative imports in lib/ and pptx_renderers/ work.
 # `lib.dist_dir` ships from outputs T001. `lib.deck_source` is this task.
 # T005+ supplies slide_builder (layout math, element dispatch).
 # T006 supplies morph_xml (Morph transition injection).
 # T013 supplies speaker_notes (talk-track assembly).
 # oT005 supplies layout helpers (resolve_layout, LayoutDict).
-from lib.dist_dir import ensure_dist, artifact_path  # type: ignore
-from lib.deck_source import DeckSource, read_deck_source  # type: ignore
-from lib.slide_builder import build_all_slides  # type: ignore
-from lib.morph_xml import inject_morph_into_all_slides  # type: ignore
-from lib.speaker_notes import apply_notes_to_all  # type: ignore
-from pptx_renderers._base import RendererCtx  # type: ignore
+from generators.lib.dist_dir import ensure_dist, artifact_path  # type: ignore
+from generators.lib.deck_source import DeckSource, read_deck_source  # type: ignore
+from generators.lib.slide_builder import build_all_slides  # type: ignore
+from generators.lib.morph_xml import inject_morph_into_all_slides  # type: ignore
+from generators.lib.speaker_notes import apply_notes_to_all  # type: ignore
+from generators.pptx_renderers._base import RendererCtx  # type: ignore
 
 
 # ─── Canvas dimensions (16:9 widescreen) ───────────────────────────────────
@@ -153,10 +154,9 @@ def build_presentation(deck: DeckSource, args: argparse.Namespace) -> Presentati
     prs.slide_width = SLIDE_W
     prs.slide_height = SLIDE_H
 
-    # Filter stages: exclude backup stages unless --include-backup is set
+    # All stages produce slides. Backup stages are rendered regardless of the flag.
+    # The --include-backup flag may be used for future visibility control if needed.
     stages = deck.stages
-    if not args.include_backup:
-        stages = [s for s in stages if not s.get("isBackup", False)]
 
     # Build context for renderers
     dist_dir = artifact_path(deck.path, "").parent
