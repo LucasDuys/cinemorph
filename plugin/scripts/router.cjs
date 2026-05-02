@@ -191,6 +191,10 @@ function main(argv) {
     return 0;
   }
 
+  if (sub === 'compare') {
+    return require('./compare').runCli(rest);
+  }
+
   process.stdout.write('morph-deck ' + sub + ': ' + SUBCOMMANDS[sub].stub + '\n');
   return 0;
 }
