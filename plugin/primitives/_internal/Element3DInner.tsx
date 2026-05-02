@@ -25,6 +25,8 @@ import { motion } from 'motion/react';
 import type { Geometry3D, Material3D, Element3DProps } from '../Element3D';
 import type { ElementLayout, StageConfig } from '../../../scaffold-template/src/deck/stages';
 import { MORPH_TRANSITION } from '../../../scaffold-template/src/deck/pace';
+import { OrbitPoints3D } from '../presets3d/OrbitPoints3D';
+import { Lattice3D } from '../presets3d/Lattice3D';
 
 // ---------------------------------------------------------------------------
 // Geometry mesh dispatch
@@ -71,26 +73,27 @@ function MeshScene({ geometry, material, children }: MeshSceneProps): React.Reac
       );
 
     case 'orbit-points':
-      // Placeholder: T005 OrbitPoints3D replaces this.
       return (
         <>
           <ambientLight intensity={0.6} />
-          <mesh>
-            <sphereGeometry args={[0.1, 8, 8]} />
-            <meshStandardMaterial color={material.color} />
-          </mesh>
+          <OrbitPoints3D
+            count={200}
+            radius={1.2}
+            color={material.color}
+          />
         </>
       );
 
     case 'lattice':
-      // Placeholder: T005 Lattice3D replaces this.
       return (
         <>
           <ambientLight intensity={0.6} />
-          <mesh>
-            <boxGeometry args={[0.1, 0.1, 0.1]} />
-            <meshStandardMaterial color={material.color} />
-          </mesh>
+          <Lattice3D
+            rows={5}
+            cols={5}
+            depth={5}
+            color={material.color}
+          />
         </>
       );
 
