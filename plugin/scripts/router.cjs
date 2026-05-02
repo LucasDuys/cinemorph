@@ -28,6 +28,18 @@ const SUBCOMMANDS = {
     summary: 'Bundle a deck for sharing',
     stub: 'not yet implemented -- see spec-morph-deck-outputs.md R013',
   },
+  qa: {
+    summary: 'Run vision-QA self-loop on a generated deck',
+    stub: 'not yet implemented -- see spec-morph-deck-verifier.md R002',
+  },
+  compare: {
+    summary: 'Compare a new deck against a reference deck or registered name',
+    stub: 'not yet implemented -- see spec-morph-deck-verifier.md R005',
+  },
+  reference: {
+    summary: 'Manage reference deck registry',
+    stub: 'not yet implemented -- see spec-morph-deck-verifier.md R006',
+  },
 };
 
 const COMMON_FLAGS_HELP = [
@@ -38,9 +50,10 @@ const COMMON_FLAGS_HELP = [
   '  --out <path>           output directory or file path',
   '  --deck <path>          existing deck directory',
   '  --from-example <name>  start from a bundled example deck',
+  '  --no-qa                skip vision-QA (manual review only)',
 ];
 
-const FLAG_KEYS = ['theme', 'tokens', 'reference', 'prompt', 'out', 'deck', 'from-example'];
+const FLAG_KEYS = ['theme', 'tokens', 'reference', 'prompt', 'out', 'deck', 'from-example', 'no-qa'];
 
 function printTopHelp(stream) {
   stream.write('morph-deck -- generate launch-video-style React presentations with shared-layout (FLIP) morph transitions.\n\n');
@@ -60,6 +73,19 @@ function printSubHelp(name, stream) {
   stream.write('Usage: morph-deck ' + name + ' [flags]\n\n');
   stream.write('Flags:\n');
   for (const line of COMMON_FLAGS_HELP) stream.write(line + '\n');
+
+  // Subcommand-specific flags
+  if (name === 'qa') {
+    stream.write('  --main-only            skip backup stages\n');
+  } else if (name === 'compare') {
+    stream.write('  --against <name-or-path> reference deck to compare against\n');
+    stream.write('  --auto-improve         iteratively improve new deck\n');
+  } else if (name === 'reference') {
+    stream.write('\nSub-actions:\n');
+    stream.write('  add <path> --as <name> register a reference deck\n');
+    stream.write('  list                   list all registered references\n');
+  }
+
   stream.write('\nExamples:\n');
   if (name === 'new') {
     stream.write('  morph-deck new --theme stacklink-dark --prompt "Series A pitch for Stacklink"\n');
@@ -74,12 +100,24 @@ function printSubHelp(name, stream) {
     stream.write('  morph-deck video --deck ./my-deck --out ./my-deck.mp4\n');
   } else if (name === 'export') {
     stream.write('  morph-deck export --deck ./my-deck --out ./my-deck.zip\n');
+  } else if (name === 'qa') {
+    stream.write('  morph-deck qa --deck ./my-deck\n');
+    stream.write('  morph-deck qa --deck ./my-deck --no-qa\n');
+  } else if (name === 'compare') {
+    stream.write('  morph-deck compare --deck ./my-deck --against stacklink-roundone-2026-04\n');
+    stream.write('  morph-deck compare --deck ./my-deck --against ./ref-deck --auto-improve\n');
+  } else if (name === 'reference') {
+    stream.write('  morph-deck reference list\n');
+    stream.write('  morph-deck reference add ./path/to/deck --as my-reference\n');
   }
+
   stream.write('\nStatus: ' + sub.stub + '\n');
 }
 
 function parseFlags(argv) {
   // Minimal arg-walk parser. Returns { flags: {...}, positional: [...], errors: [...] }.
+  // Boolean flags (--no-qa) don't require values; others do.
+  const BOOLEAN_FLAGS = ['no-qa'];
   const flags = {};
   const positional = [];
   const errors = [];
@@ -95,6 +133,11 @@ function parseFlags(argv) {
       const key = tok.slice(2);
       if (!FLAG_KEYS.includes(key)) {
         errors.push('unknown flag: --' + key);
+        i += 1;
+        continue;
+      }
+      if (BOOLEAN_FLAGS.includes(key)) {
+        flags[key] = true;
         i += 1;
         continue;
       }
