@@ -112,7 +112,7 @@ test('acceptance-stacklink: generate pitch deck and verify build + render', asyn
     }
 
     console.log('\nNext step: Manual eyeball comparison');
-    console.log(`Compare the generated deck against reference at: C:\\dev\\stacklink-pitch-roundone\\pitch-app\\dist`);
+    console.log('Compare the generated deck against the bundled example at: plugin/examples/stacklink-roundone-pitch/');
     console.log('');
 
   } finally {
