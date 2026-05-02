@@ -98,10 +98,14 @@ try:
     from . import _custom_placeholder
 except ImportError:
     pass
+try:
+    from . import element3d
+except ImportError:
+    pass
 
 # Merge registries from renderer modules (for backward compatibility with old-style local registries)
 import sys
-for module_name in ['connector_chip', 'card', 'logo', 'image', 'footer_strip', 'orbit_group', 'pipeline_group', 'stat_group', '_custom_placeholder']:
+for module_name in ['connector_chip', 'card', 'logo', 'image', 'footer_strip', 'orbit_group', 'pipeline_group', 'stat_group', '_custom_placeholder', 'element3d']:
     module = sys.modules.get(f'{__name__}.{module_name}')
     if module and hasattr(module, 'RENDERER_REGISTRY'):
         RENDERER_REGISTRY.update(module.RENDERER_REGISTRY)

@@ -126,6 +126,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=False,
         help="Clean <deck>/dist/ before export (default: off).",
     )
+    p.add_argument(
+        "--3d-mode",
+        choices=("static", "hidden"),
+        default="static",
+        help="3D element rendering mode: static (embed PNG), hidden (skip). Default: static.",
+    )
     return p.parse_args(argv)
 
 
@@ -167,6 +173,9 @@ def build_presentation(deck: DeckSource, args: argparse.Namespace) -> Presentati
         fonts={},  # fonts map will be populated by renderers as needed
         dist_dir=Path(dist_dir),
     )
+
+    # Thread 3D mode through context so element3d renderer can access it
+    ctx.theme['3d_mode'] = args.__dict__.get('3d_mode', 'static')
 
     # Build all slides (dispatches elements via RENDERER_REGISTRY)
     slides = build_all_slides(prs, stages, deck.data, ctx)
