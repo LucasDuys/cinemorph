@@ -385,15 +385,17 @@ test('runQALoop with 3 stages where stage-2 has overall=5 triggers exactly 1 ret
 
   // slide-2 fails on first eval, passes on retry.
   let evaluateCallCount = 0;
+  const slide2CallCount = { n: 0 };
   const _evaluateFn = ({ stageId }) => {
     evaluateCallCount++;
-    if (stageId === 'slide-2' && evaluateCallCount === 2) {
-      // Retry call — pass this time.
-      return { scores: { legibility:8, overlap:8, hierarchy:8, brand:8, composition:8, onbrand:8, cinematic:8, overall:8 }, issues: [] };
-    }
     if (stageId === 'slide-2') {
-      // First eval — fail.
-      return { scores: { legibility:4, overlap:5, hierarchy:5, brand:5, composition:4, onbrand:4, cinematic:4, overall:5 }, issues: [{ severity:'major', what:'Low contrast', where:'body', fix_suggestion:'Increase contrast' }] };
+      slide2CallCount.n++;
+      if (slide2CallCount.n === 1) {
+        // First eval — fail.
+        return { scores: { legibility:4, overlap:5, hierarchy:5, brand:5, composition:4, onbrand:4, cinematic:4, overall:5 }, issues: [{ severity:'major', what:'Low contrast', where:'body', fix_suggestion:'Increase contrast' }] };
+      }
+      // Retry call (n >= 2) — pass.
+      return { scores: { legibility:8, overlap:8, hierarchy:8, brand:8, composition:8, onbrand:8, cinematic:8, overall:8 }, issues: [] };
     }
     return { scores: { legibility:8, overlap:8, hierarchy:8, brand:8, composition:8, onbrand:8, cinematic:8, overall:8 }, issues: [] };
   };
