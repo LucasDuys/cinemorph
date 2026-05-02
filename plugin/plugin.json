@@ -1,6 +1,6 @@
 {
   "name": "morph-deck",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Lucas Duys",
   "description": "Generate launch-video-style React presentations with shared-layout (FLIP) morph transitions between stages. Outputs live React deck, PPTX with Morph transitions, or Playwright-recorded MP4.",
   "entryCommand": "/morph-deck",

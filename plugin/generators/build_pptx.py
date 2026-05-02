@@ -16,17 +16,36 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
+
+# ─── Module setup for relative imports ─────────────────────────────────────
+# When run as a script, add plugin/ and generators/ to sys.path so that:
+# - `from generators.lib import ...` works from outside
+# - relative imports from lib.slide_builder work (..pptx_renderers)
+_GENERATORS_DIR = Path(__file__).parent
+_PLUGIN_DIR = _GENERATORS_DIR.parent
+for _dir in [str(_PLUGIN_DIR), str(_GENERATORS_DIR)]:
+    if _dir not in sys.path:
+        sys.path.insert(0, _dir)
 
 # ─── Hard imports for the eventual full build ──────────────────────────────
 # Imported here so a missing dependency surfaces at scaffold time, not on the
-# first real export. Kept deliberately minimal — actual usage lives in T005+.
+# first real export.
 from pptx import Presentation
 from pptx.util import Emu
 
 # ─── Project helpers ───────────────────────────────────────────────────────
 # `lib.dist_dir` ships from outputs T001. `lib.deck_source` is this task.
+# T005+ supplies slide_builder (layout math, element dispatch).
+# T006 supplies morph_xml (Morph transition injection).
+# T013 supplies speaker_notes (talk-track assembly).
+# oT005 supplies layout helpers (resolve_layout, LayoutDict).
 from lib.dist_dir import ensure_dist, artifact_path  # type: ignore
 from lib.deck_source import DeckSource, read_deck_source  # type: ignore
+from lib.slide_builder import build_all_slides  # type: ignore
+from lib.morph_xml import inject_morph_into_all_slides  # type: ignore
+from lib.speaker_notes import apply_notes_to_all  # type: ignore
+from pptx_renderers._base import RendererCtx  # type: ignore
 
 
 # ─── Canvas dimensions (16:9 widescreen) ───────────────────────────────────
@@ -109,22 +128,56 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-# ─── Build pipeline (stubs filled in by T005-T014) ─────────────────────────
+# ─── Build pipeline ────────────────────────────────────────────────────────
 def build_presentation(deck: DeckSource, args: argparse.Namespace) -> Presentation:
     """Build a python-pptx Presentation from a DeckSource.
 
-    SCAFFOLD: returns an empty 16:9 presentation. T005 fills in slide layout
-    math, T006 wires Morph transitions, T008-T010 plug per-primitive renderers.
-    The signature is stable so downstream tasks plug in without rewiring.
+    Wires the full pipeline:
+    1. Create 16:9 Presentation.
+    2. Call build_all_slides() to render all stages (dispatches to RENDERER_REGISTRY).
+    3. Inject Morph transitions via inject_morph_into_all_slides().
+    4. Apply speaker notes from talkTrack if present.
+    5. Return populated Presentation ready to save.
+
+    Spec: R001 (PPTX export), R002 (slide layout), R003 (Morph transitions),
+    R005 (speaker notes).
+
+    Args:
+        deck: DeckSource with stages, data, tokens read from filesystem.
+        args: argparse.Namespace with speed, include_backup flags.
+
+    Returns:
+        pptx.Presentation with all slides built, morphs injected, notes applied.
     """
     prs = Presentation()
     prs.slide_width = SLIDE_W
     prs.slide_height = SLIDE_H
-    # NOTE: slide builders + Morph injection land in outputs T005, T006.
-    # We deliberately leave the deck empty here so the scaffold remains
-    # importable and `--help` works without depending on unfinished pieces.
-    _ = deck  # silence unused-arg warnings until T005
-    _ = args
+
+    # Filter stages: exclude backup stages unless --include-backup is set
+    stages = deck.stages
+    if not args.include_backup:
+        stages = [s for s in stages if not s.get("isBackup", False)]
+
+    # Build context for renderers
+    dist_dir = artifact_path(deck.path, "").parent
+    ctx = RendererCtx(
+        theme=deck.tokens,  # brand tokens: colors, fonts, spacing
+        dwell_ms=0,  # per-slide dwell set by speaker_notes if talkTrack present
+        slide_idx=0,  # build_all_slides updates this per slide
+        fonts={},  # fonts map will be populated by renderers as needed
+        dist_dir=Path(dist_dir),
+    )
+
+    # Build all slides (dispatches elements via RENDERER_REGISTRY)
+    slides = build_all_slides(prs, stages, deck.data, ctx)
+
+    # Inject Morph transitions into all slides (Spec R003.AC4)
+    inject_morph_into_all_slides(prs, mode="byObject", speed=args.speed)
+
+    # Apply speaker notes from talkTrack if stages have scripts (Spec R005)
+    if slides and any(s.get("talkTrack", {}).get("script") for s in stages):
+        apply_notes_to_all(slides, stages)
+
     return prs
 
 
