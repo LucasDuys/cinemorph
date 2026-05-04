@@ -1,324 +1,312 @@
 # Cinemorph Plugin
 
-> Renamed from `morph-deck` in v1.1.0. The old `/cinemorph` command continues to work as an alias.
+> You're inside the installed plugin. For the full project README, demo videos, and GitHub Pages site, see the [repo root](../README.md).
 
-## What It Is
+This file documents the plugin from the **inside** — every command, flag, primitive, theme, and extension point you can reach with `/cinemorph` after the plugin is in `~/.claude/plugins/cinemorph/`.
 
-Cinemorph generates cinematic launch-video-style React presentations with shared-layout (FLIP) morph transitions between stages. Given a brief and design tokens, the composer emits a complete, production-ready Vite + React deck. Outputs: live React deck (dev server + hot reload), PPTX with native Morph transitions, MP4 video (30s–5m cinematic export), and speaker notes with presenter cues.
+---
 
-For cinematic launch-video output, the composer applies the principles in `docs/cinematic-launch-video-lessons.md` — every rule there was earned by shipping a real 30-second video and getting each detail wrong before getting it right. Audio bus race-condition fix, scene-transition vs internal-animation SFX placement, autoplay gate, dev scrubber, ffmpeg seek-mode trap, and the volume hierarchy are all baked in.
+## What it does
+
+Cinemorph composes a Vite + React deck where persistent elements morph cleanly between stages via Framer Motion's shared-layout (`LayoutGroup` + `layoutId`) FLIP transitions. The composer takes a brief and emits a complete `stages.ts` + `data.ts`. The scaffold renders them. Three production targets fall out:
+
+- **Live deck** — Vite dev server, hot reload, `?dev=1` timeline scrubber.
+- **PPTX with native Morph** — editable PowerPoint with Microsoft Morph between slides.
+- **MP4** — Playwright-recorded, ffmpeg-muxed cinematic video with audio bus, voiceover, SFX, smear cuts.
+
+For 30-second cinematic launch films, `docs/cinematic-launch-video-lessons.md` is the canonical reference. Every rule there was earned by shipping a real video — read it before generating one.
+
+---
 
 ## Install
 
-Copy the `plugin/` directory into `~/.claude/plugins/cinemorph/`:
-
 ```bash
-cp -r plugin ~/.claude/plugins/cinemorph
+git clone https://github.com/LucasDuys/cinemorph.git
+cp -r cinemorph/plugin ~/.claude/plugins/cinemorph
 ```
 
-After installation, restart your Claude session to activate the plugin. You can then invoke the plugin via the `/cinemorph` command (or `/cinemorph` for backwards compatibility).
+Restart your Claude Code session. The `/cinemorph` command becomes available. `/morph-deck` is kept as a v1.0 alias.
 
-## Quick Start
+**Auth.** The composer spawns the `claude` CLI on `PATH` and uses your Claude Code subscription. `ANTHROPIC_API_KEY` is not required and not consulted for compose / iterate / QA flows.
 
-### New Deck from Scratch
+---
 
-Generate a deck from a brief text:
+## Subcommands
+
+### `new` — scaffold a fresh deck
 
 ```bash
-/cinemorph new --theme stacklink-dark --prompt "Series A pitch for Stacklink: problem, solution, traction, team, ask"
+/cinemorph new --from-example launch-cinematic-30s --out ./my-launch-video
+/cinemorph new --theme stacklink-dark --prompt "Series A pitch: problem, solution, traction, team, ask"
+/cinemorph new --reference ./brand.png --prompt "Q3 roadmap"
 ```
 
-Output: a new deck directory with `src/deck/stages.ts`, `src/deck/data.ts`, and a live dev server ready at `localhost:5173`.
+**Flags**
 
-### New Deck from Example
+| Flag | Effect |
+|---|---|
+| `--from-example <name>` | Start from a bundled deck (see [Examples](#examples)) |
+| `--theme <name>` | `stacklink-dark` \| `bunq-mint-light` \| `linear-light` \| `minimal-mono` \| `playful-poster` |
+| `--tokens <path>` | Load `tokens.json` or `DESIGN.md` |
+| `--reference <image>` | Extract a 5-color palette from a screenshot |
+| `--prompt "<text>"` | Brief or style description |
+| `--out <path>` | Output directory (default: `./<slug>`) |
 
-Start from a bundled template and customize it:
+Inputs apply in priority order — `--theme` < `--tokens` < `--reference` < `--prompt`. Later layers win on fields they provide. Missing fields trigger a clarifying question.
+
+### `iterate` — refine the active deck
 
 ```bash
-/cinemorph new --from-example pitch-5slide --out ./my-pitch
+/cinemorph iterate "make slide 3 more cinematic, less text"
+/cinemorph iterate --deck ./my-pitch "swap kpi tile order"
 ```
 
-Available example decks:
-- `pitch-5slide` — Investor pitch (Problem, Solution, Traction, Team, Ask)
-- `launch-cinematic-30s` — Product launch video storyboard (30-second cinematic)
-- `feature-demo` — Feature walkthrough with 4–6 slides
-- `kpi-dashboard-tour` — Metrics dashboard presentation
-- `case-study` — Customer case study (problem, implementation, results)
-- `manifesto` — Brand mission / values statement
-- `release-notes` — Launch notes (what's new, highlights)
-- `roadmap` — Engineering / product roadmap
-- `retro-storyboard` — Retrospective or lessons learned
-- `team-intro` — Team member bios and roles
+Modifies the last-touched deck in `cwd` unless `--deck` is given.
 
-### Iterate & Refine
-
-Regenerate slides in an existing deck:
+### `render` — start the dev server
 
 ```bash
-/cinemorph iterate --deck ./my-pitch --prompt "make slide 3 more cinematic, less text"
-```
-
-### Render (Dev Server)
-
-Start the live development server for a deck:
-
-```bash
+/cinemorph render
 /cinemorph render --deck ./my-pitch
 ```
 
-Opens `http://localhost:5173` with hot reload. Press `?` in the deck for keyboard shortcuts (arrow keys to advance, B for backup slides, K for speaker view).
+Opens `http://localhost:5173`. Keyboard: `→` / `Space` next, `←` previous, `R` restart, `B` Q&A backup, `?` shortcut sheet. Append `?dev=1` to the URL for the cinematic timeline scrubber.
 
-### Export to PowerPoint
-
-Convert a deck to .pptx with native Morph transitions:
+### `pptx` — export to PowerPoint
 
 ```bash
-/cinemorph pptx --deck ./my-pitch --out ./my-pitch.pptx
+/cinemorph pptx --out ./my-pitch.pptx
 ```
 
-Opens in PowerPoint with smooth Morph animations between slides (compatible with Office 2019 and later).
+Native Microsoft Morph transitions. Compatible with Office 2019+ and Microsoft 365.
 
-### Export to Video
-
-Render a deck as MP4 (cinematic or standard speed):
+### `video` — export to MP4
 
 ```bash
-/cinemorph video --deck ./my-pitch --out ./my-pitch.mp4
+/cinemorph video --out ./my-launch-video.mp4
 ```
 
-Records the deck at 60 FPS with audio narration (reads `talkTrack.script` from each stage).
+Playwright records the deck at 60 fps. ffmpeg muxes the audio bus (music bed + voiceover + SFX cues) using the `talkTrack` from each stage.
 
-### Bundle for Sharing
-
-Create a self-contained .zip for email or web sharing:
+### `export --all` — every output
 
 ```bash
-/cinemorph export --deck ./my-pitch --out ./my-pitch.zip
+/cinemorph export --all
 ```
 
-Includes the deck, a static HTML render, and speaker notes.
+Runs `pptx` + `video` + writes `notes.md` with one section per stage (presenter rehearsal + PPTX speaker notes derived from the same source).
 
-## Subcommands Reference
+### `reference add` — register a style reference
 
-- **new** — Scaffold a fresh deck from a prompt or example
-- **iterate** — Regenerate or refine slides in an existing deck
-- **render** — Start the dev server and live preview
-- **pptx** — Export to PowerPoint (.pptx) with Morph transitions
-- **video** — Export to MP4 video (30s–5m cinematic)
-- **export** — Bundle a deck as a shareable .zip
+```bash
+/cinemorph reference add ./some-other-deck --name house-style
+```
+
+Subsequent `--reference house-style` resolves to that deck's tokens.
+
+---
 
 ## Themes
 
-Five built-in themes with complete color palettes, typography, and spacing:
+| Theme | Mood | Background | Accent |
+|---|---|---|---|
+| `stacklink-dark` | EU-enterprise restraint | `#09090F` | violet + cyan |
+| `bunq-mint-light` | Fintech, modern | `#FAFAFA` | mint |
+| `linear-light` | Minimal, technical | `#F8F9FA` | slate + blue |
+| `minimal-mono` | Editorial, typographic | `#FFFFFF` | grays |
+| `playful-poster` | Creative, event-driven | varies | multi-color |
 
-- **stacklink-dark** — Deep blue + cyan; enterprise, data-forward
-- **bunq-mint-light** — Mint green + white; fintech, modern
-- **linear-light** — Slate + blue; minimal, technical
-- **minimal-mono** — Black + white + grays; typographic, editorial
-- **playful-poster** — Vibrant multi-color; creative, event-driven
+Custom token shape:
 
-Override any theme with your own token file:
-
-```bash
-/cinemorph new --tokens ./my-tokens.json --prompt "Company all-hands"
-```
-
-Token JSON shape:
-
-```json
+```jsonc
 {
-  "background": "#ffffff",
-  "foreground": "#1a1a1a",
-  "mutedForeground": "#666666",
-  "border": "#e5e5e5",
-  "surfaceBase": "#f5f5f5",
-  "surfaceSubtle": "#efefef",
-  "surfaceRaised": "#ffffff",
-  "success": "#10b981",
-  "info": "#3b82f6",
-  "warning": "#f59e0b",
-  "destructive": "#ef4444",
-  "fontDisplay": "'Inter', sans-serif",
-  "fontBody": "'Inter', sans-serif",
-  "fontMono": "'Fira Code', monospace"
+  "background": "#09090F",
+  "foreground": "#FAFAFA",
+  "mutedForeground": "#A1A1AA",
+  "border": "#27272A",
+  "surfaceBase": "#09090F",
+  "surfaceSubtle": "#27272A",
+  "surfaceRaised": "#1D1D21",
+  "success": "#22C55E",
+  "info": "#3B82F6",
+  "warning": "#F59E0B",
+  "destructive": "#EF4444",
+  "fontDisplay": "Space Grotesk, Inter, sans-serif",
+  "fontBody": "Inter, sans-serif",
+  "fontMono": "JetBrains Mono, monospace"
 }
 ```
 
-Or use a visual reference image to auto-extract a palette:
+---
 
-```bash
-/cinemorph new --reference ./brand-screenshot.png --prompt "Q1 roadmap"
-```
+## Sixteen built-in primitives
 
-## Primitives
+| Primitive | Purpose |
+|---|---|
+| `Wordmark` | Logo / product name header |
+| `KPI` | Value + label pair |
+| `Pillar` | Portrait card (name, role, image) |
+| `Quote` | Pull quote with attribution |
+| `ConnectorChip` | Logo badge: Slack, GitHub, Notion, Linear, Confluence, Jira, OneDrive, Teams, Salesforce, Drive |
+| `Card` | Headline + body + optional image |
+| `Logo` | Inline logo / brand asset |
+| `Image` | Photo or diagram with fade-in |
+| `Diagram` | SVG / PNG architecture diagram |
+| `Icon` | Inline icon or symbol |
+| `Chart` | Static data visualization |
+| `MorphChart` | FLIP-tracked animated chart |
+| `OrbitGroup` | Circular radial layout |
+| `PipelineGroup` | Left-to-right flow diagram |
+| `FooterStrip` | Persistent footer bar |
+| `StatGroup` | Multi-stat grid (3–6 metrics) |
 
-Sixteen composable elements for deck composition:
+### Adding your own — convention-based
 
-- **Wordmark** — Logo / product name header
-- **KPI** — Key performance indicator (value + label pair)
-- **Pillar** — Portrait card (name, role, background image)
-- **Quote** — Pull quote with attribution
-- **ConnectorChip** — Logo badge for integrations (Slack, GitHub, Notion, Linear, Confluence, Jira, OneDrive, Teams, Salesforce, Drive)
-- **Card** — Full-width content card (headline, body, optional image)
-- **Logo** — Inline logo / brand asset
-- **Image** — Photo or diagram with fade-in
-- **Diagram** — SVG or PNG architecture diagram
-- **Icon** — Inline icon or symbol
-- **Chart** — Data visualization component
-- **MorphChart** — Animated chart with FLIP transitions
-- **OrbitGroup** — Circular arrangement of elements (radial layout)
-- **PipelineGroup** — Linear flow diagram (left-to-right process)
-- **FooterStrip** — Persistent footer bar (often for slide number or branding)
-- **StatGroup** — Multi-stat grid (3–6 metrics in rows)
+Drop a component into `src/deck/elements/custom/` of a generated deck. Filename `MyChart.tsx` derives the element id `myChart`:
 
-## Custom Elements
-
-Extend the primitive library with your own components. Two registration paths:
-
-### Convention-Based (Auto-Discovery)
-
-Drop a component into `src/deck/elements/custom/`:
-
-```
-your-deck/
-  src/deck/
-    elements/
-      custom/
-        MyChart.tsx
-```
-
-Filename `MyChart.tsx` auto-derives the element id `myChart`. Use in stages:
-
-```typescript
+```ts
 elements: {
   myChart: { pos: { left: '10%', top: '10%', width: '60%', height: '40%' }, shape: 'chart' }
 }
 ```
 
-### Explicit Registry
+### Adding your own — explicit registry
 
-Add an entry to `src/deck/elements/customRegistry.ts`:
-
-```typescript
+```ts
+// src/deck/elements/customRegistry.ts
 import MyChart from './custom/MyChart';
 
 export const CUSTOM_ELEMENTS: CustomElementEntry[] = [
   {
     id: 'myChart',
     component: MyChart,
-    defaultLayout: { pos: { ... }, shape: 'chart' }
-  }
+    defaultLayout: { pos: { left: '10%', top: '10%', width: '60%', height: '40%' }, shape: 'chart' },
+  },
 ];
 ```
 
-See `plugin/examples/custom-element/` for a complete example.
+See [`examples/custom-element/`](examples/custom-element/) for a complete, runnable example.
 
-## Composer (Live API)
+---
 
-The composer is an agentic Claude invocation that takes a brief, tokens, and primitive manifest and produces a complete `stages.ts` + `data.ts`.
+## Examples
 
-How it works:
+| Example | Description |
+|---|---|
+| **`launch-cinematic-30s`** | Canonical 30-second cinematic launch film — RAF-clock driven, audio bus wired, dev scrubber, autoplay gate |
+| **`stacklink-roundone-pitch`** | Real 5-slide investor pitch — bundled `stages.ts` + `data.ts` + `tokens.ts` |
+| `pitch-5slide` | Generic investor deck (Problem, Solution, Traction, Team, Ask) |
+| `feature-demo` | 4–6-slide feature walkthrough |
+| `kpi-dashboard-tour` | Live-data dashboard with morphing kpi tiles |
+| `case-study` | Customer success story format |
+| `manifesto` | Vision / principles statement |
+| `team-intro` | Team intro with morphing pillar cards |
+| `release-notes` | Engineering release-notes deck |
+| `roadmap` | Quarterly roadmap with morphing milestone tiles |
+| `retro-storyboard` | Retrospective / post-mortem storyboard |
+| `custom-element` | Reference for registering your own primitive |
 
-1. **Input**: brief (plain text), design tokens (JSON), primitive manifest (list of available elements)
-2. **Invocation**: spawns the `claude` CLI binary with system prompt (`agents/morph-composer.md`)
-3. **Output**: a single JSON object containing `stagesTs` and `dataTs` as strings
-4. **Constraints**: 8000 max output tokens, 60-second wall time
+Each example is a self-contained deck source — read its `README.md` and `brief.md` as documentation by example.
 
-Authentication is handled by the `claude` CLI on PATH (uses your Claude Code subscription). No API key environment variable is required. For testing, set `MORPH_DECK_FAKE_CLAUDE=/path/to/stub` to swap in a stub binary.
+---
 
-See `plugin/docs/composer-live.md` for detailed wiring documentation and examples.
+## How the composer works
 
-## Repository Layout
+1. **Input**: brief (plain text), merged design tokens (JSON), primitive manifest (list of available element shapes).
+2. **Invocation**: spawns the `claude` CLI binary with `agents/morph-composer.md` as the system prompt. Authentication is the user's Claude Code subscription; no API key.
+3. **Output**: a single JSON object with `stagesTs` and `dataTs` as strings.
+4. **Constraints**: 8000 max output tokens, 60-second wall-clock. Decks with more than ~7 main slides or very long talk tracks may approach the token cap.
+5. **Verification**: build + render check; phase-2 verifier compares generated output against a reference image and runs an auto-improve loop if quality scores miss thresholds.
+
+For testing, set `MORPH_DECK_FAKE_CLAUDE=/path/to/stub` to swap in a stub binary.
+
+Detailed wiring: [`docs/composer-live.md`](docs/composer-live.md).
+
+---
+
+## Pattern invariants the generator enforces
+
+- `<LayoutGroup>` from `motion/react` wraps the persistent element layer in `Canvas.tsx`. Without it, `layoutId` tracking breaks across siblings.
+- Every `motion.div` reads timing from `pace.ts` exports (`MORPH_TRANSITION`, `CAPTION_FADE`, `FRAME_FADE`). No inline durations.
+- `HIDDEN` (a 0%×0% layout at canvas center, opacity 0) keeps the morph chain alive across appear / disappear cycles. Omitting an element from a stage's layout map is treated as `HIDDEN`.
+- Primitives consume tokens via Tailwind classes derived from `tokens.ts` (`bg-background`, `text-foreground`). No hardcoded hex anywhere except inside theme JSON files.
+- Default `MORPH_TRANSITION` is `{ duration: 0.7, ease: [0.32, 0.72, 0.34, 1] }`.
+
+For cinematic-video output, see `docs/cinematic-launch-video-lessons.md` for SFX placement, audio-bus invariants, autoplay-gate pattern, and dev-scrubber requirement.
+
+---
+
+## Talk tracks
+
+Each generated stage carries an optional `talkTrack: { script, dwellSeconds?, cues? }`. The plugin derives:
+
+- `notes.md` — one section per stage, for presenter rehearsal
+- PPTX speaker notes
+- Auto-paced video dwell times (`words / 150 wpm + 1.5s`)
+
+---
+
+## Output layout
+
+`/cinemorph new` produces a Vite + React 18 + Tailwind + `motion/react` project at `<deck>/` with the canonical six-file deck source under `src/deck/`:
 
 ```
-morph-deck-skill/
-├── plugin/                      # The installed Claude plugin
-│   ├── plugin.json              # Metadata (name, version, entry command)
-│   ├── README.md                # This file
-│   ├── commands/                # Command definitions
-│   │   ├── morph-deck.md        # Router and subcommand help
-│   │   ├── new.md
-│   │   ├── iterate.md
-│   │   ├── render.md
-│   │   ├── pptx.md
-│   │   ├── video.md
-│   │   └── export.md
-│   ├── agents/                  # Claude agent prompts
-│   │   ├── morph-composer.md    # Composer system prompt
-│   │   └── [other agents]
-│   ├── scripts/                 # Node.js orchestration scripts
-│   │   ├── router.cjs           # Subcommand dispatcher
-│   │   ├── composer.cjs         # Claude CLI wrapper
-│   │   ├── from-example.cjs     # Example deck copier
-│   │   ├── iterate.cjs          # Refinement orchestrator
-│   │   ├── token-merger.cjs     # Theme + override merging
-│   │   ├── primitive-manifest.cjs # Primitive registry builder
-│   │   └── [other scripts]
-│   ├── themes/                  # Token JSON files (5 built-in themes)
-│   │   ├── stacklink-dark.json
-│   │   ├── bunq-mint-light.json
-│   │   ├── linear-light.json
-│   │   ├── minimal-mono.json
-│   │   └── playful-poster.json
-│   ├── primitives/              # React components (14 built-in)
-│   │   ├── Wordmark.tsx
-│   │   ├── Caption.tsx
-│   │   ├── KPI.tsx
-│   │   ├── Pillar.tsx
-│   │   ├── Quote.tsx
-│   │   ├── ConnectorChip.tsx
-│   │   ├── Card.tsx
-│   │   ├── Logo.tsx
-│   │   ├── Image.tsx
-│   │   ├── Diagram.tsx
-│   │   ├── OrbitGroup.tsx
-│   │   ├── PipelineGroup.tsx
-│   │   ├── FooterStrip.tsx
-│   │   ├── StatGroup.tsx
-│   │   ├── index.ts
-│   │   └── connectors/          # Connector logos
-│   ├── examples/                # 10 example decks (templates)
-│   │   ├── pitch-5slide/
-│   │   ├── launch-cinematic-30s/
-│   │   ├── feature-demo/
-│   │   ├── kpi-dashboard-tour/
-│   │   ├── case-study/
-│   │   ├── manifesto/
-│   │   ├── release-notes/
-│   │   ├── roadmap/
-│   │   ├── retro-storyboard/
-│   │   ├── team-intro/
-│   │   └── custom-element/      # Custom element guide + example
-│   ├── generators/              # Output pipeline (pptx, video, etc.)
-│   ├── skills/                  # Embedded skills
-│   └── __tests__/               # Plugin-level tests
-└── scaffold-template/           # Vite + React template for new decks
-    ├── src/
-    │   ├── deck/
-    │   │   ├── stages.ts        # (generated by composer)
-    │   │   ├── data.ts          # (generated by composer)
-    │   │   ├── elements/        # Primitive renderers
-    │   │   ├── pace.ts          # Timing & easing config
-    │   │   ├── theme.ts         # Tailwind token mapping
-    │   │   └── App.tsx          # Main deck component
-    │   └── index.tsx
-    ├── vite.config.ts
-    ├── tsconfig.json
-    └── package.json
+src/deck/
+├── Canvas.tsx          # <LayoutGroup> wrapper, primitive renderer
+├── Caption.tsx         # On-canvas captions + scene title
+├── Deck.tsx            # Stage state, keyboard nav, corner controls
+├── StepIndicator.tsx   # Bottom-strip progress
+├── stages.ts           # ← composer-generated
+├── data.ts             # ← composer-generated
+├── elements.tsx        # Primitive bindings
+├── frames.tsx          # Frame variants
+├── pace.ts             # Timing & easing
+├── tokens.ts           # Theme tokens (Tailwind-mapped)
+└── App.tsx             # Mount
 ```
 
-## Phase 2 (Future)
+For cinematic launch-video output, additional files emit:
 
-Deferred features planned for Q3 2026:
+```
+src/deck/
+├── lib.ts                    # Audio bus + master clock + phase helpers + aeBounce
+└── ContinuousLaunch.tsx      # RAF-driven scene composer
+public/
+├── voiceover.mp3             # VO file slot
+└── sfx/
+    ├── music-bed.mp3         # Music bed slot
+    └── ...                   # SFX library
+```
 
-- **Vision QA** — LLM review of generated decks against brief (auto-catch misalignments)
-- **3D transitions** — Perspective transforms and depth effects (WebGL layer)
-- **Live speaker view** — Network-synced presenter display with notes + timer
+Run `bun install && bun run dev` to view at `localhost:5173`. Append `?dev=1` for the cinematic timeline scrubber.
 
-## Notes
+---
 
-- Decks use **Framer Motion** for FLIP-tracked morphing; elements share `layoutId` across stages for smooth transitions.
-- **Tailwind CSS** handles theming; all colors map to token classes (no hex hardcoding).
-- **Vite dev server** provides instant HMR; changes to `stages.ts` or `data.ts` reload instantly.
-- Composer budget: 8000 output tokens, 60-second wall clock. Decks with >7 main slides or very long talk tracks may approach this limit.
-- The video export uses **Playwright** to record the deck at 60 FPS and **FFmpeg** to encode MP4 with audio.
+## Implementation entry points
+
+If you want to read the actual command logic:
+
+- [`commands/morph-deck.md`](commands/morph-deck.md) — slash command surface (parses args, routes to scripts)
+- [`scripts/router.cjs`](scripts/router.cjs) — subcommand dispatcher
+- [`scripts/composer.cjs`](scripts/composer.cjs) — Claude CLI sub-agent harness
+- [`scripts/verify-loop.cjs`](scripts/verify-loop.cjs) — build + render verification chain
+- [`scripts/token-merger.cjs`](scripts/token-merger.cjs) — design-input layered merger
+- [`scripts/from-example.cjs`](scripts/from-example.cjs) — `--from-example` clone helper
+- [`agents/morph-composer.md`](agents/morph-composer.md) — composer system prompt
+
+---
+
+## Phase 2 (planned, Q3 2026)
+
+- **Vision QA** — LLM review of generated decks against brief (auto-catch misalignments).
+- **3D transitions** — Perspective transforms and depth effects (WebGL layer).
+- **Live speaker view** — Network-synced presenter display with notes + timer.
+
+---
+
+## See also
+
+- [`docs/cinematic-launch-video-lessons.md`](docs/cinematic-launch-video-lessons.md) — required reading before generating any 30s launch video
+- [`docs/composer-live.md`](docs/composer-live.md) — composer wiring and testing details
+- [`../README.md`](../README.md) — top-level project README with demos and quick start
+- [`../site/`](../site/) — GitHub Pages source (built site at `https://lucasduys.github.io/cinemorph`)
