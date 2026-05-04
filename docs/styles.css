@@ -1,7 +1,8 @@
 /* Cinemorph site — "Aperture" palette.
    Warm cream paper · deep ink · vermillion + chrome-yellow accents.
-   The site is itself a Cinemorph artefact: same FLIP-style transition timing
-   (cubic-bezier(.32,.72,.34,1), 700 ms) used across the persistent layer. */
+   The hero is itself a Cinemorph artefact: a terminal that types a real
+   prompt, a composer arrow, and a canvas where the resulting deck morphs
+   in. Three prompts cycle, each producing a distinct deck shape. */
 
 :root {
   --paper:        #F4EFE3;
@@ -35,7 +36,6 @@
   --pad: clamp(1.25rem, 4vw, 2rem);
 
   --morph: cubic-bezier(0.32, 0.72, 0.34, 1);
-  --morph-fast: cubic-bezier(0.32, 0.72, 0.34, 1);
   --d-morph: 0.7s;
 }
 
@@ -168,56 +168,217 @@ main { position: relative; z-index: 1; }
 }
 
 /* ===========================================================
-   30-SECOND CINEMATIC HERO
-   Pure CSS / RAF state machine. Each persistent element has a
-   layoutId-equivalent class; per-scene rules transform/move it.
-   Default transition picks up FLIP-style timing.
+   HERO TITLE
+   =========================================================== */
+.hero-title {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 3rem var(--pad) 1rem;
+  text-align: center;
+}
+.hero-title h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 6.5vw, 5rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  margin: 0 0 1.25rem;
+}
+.hero-title h1 em {
+  font-style: italic;
+  color: transparent;
+  background: linear-gradient(120deg, var(--ink) 30%, var(--vermillion-deep) 60%, var(--ink) 95%);
+  background-size: 200% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: gradient-sweep 8s var(--morph) infinite alternate;
+}
+@keyframes gradient-sweep {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
+.hero-title .lede {
+  max-width: 56ch;
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+/* ===========================================================
+   LIVE PROMPT → ANIMATION DEMO
+   demo-shell drives every child via two attributes:
+     data-cycle  = "0" | "1" | "2"        (which prompt is active)
+     data-phase  = "typing" | "composing" | "playing"
    =========================================================== */
 
 .film {
   max-width: var(--max);
   margin: 0 auto;
-  padding: 2.25rem var(--pad) 1rem;
+  padding: 2rem var(--pad) 1rem;
 }
 
-.film-frame {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  background:
-    radial-gradient(70% 90% at 50% 50%, var(--paper-soft), var(--paper) 70%),
-    var(--paper);
+.demo-shell {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
   border: 1px solid var(--rule);
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
+  background: var(--paper-soft);
 }
 
-.layer {
-  position: absolute;
-  inset: 0;
+/* TERMINAL */
+.terminal {
+  background: var(--ink);
+  color: var(--paper-soft);
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--ink);
+}
+.terminal-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.95rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, #1a1612 0%, #14110d 100%);
+  font-size: 0.78rem;
+}
+.terminal-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+.terminal-dots i {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: inline-block;
+}
+.terminal-dots i:nth-child(1) { background: #ff5f56; }
+.terminal-dots i:nth-child(2) { background: #ffbd2e; }
+.terminal-dots i:nth-child(3) { background: #27c93f; }
+.terminal-title {
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.04em;
+}
+.terminal-status {
+  margin-left: auto;
+  color: var(--chrome);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.terminal-body {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: clamp(0.85rem, 1.6vw, 1.25rem) clamp(1rem, 2vw, 1.5rem);
+  font-size: clamp(0.78rem, 1.3vw, 1rem);
+  line-height: 1.5;
+  min-height: 4.5rem;
+  flex-wrap: wrap;
+}
+.terminal-prefix {
+  color: var(--vermillion);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.terminal-prompt {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.terminal-prompt .tk-cmd  { color: var(--chrome); }
+.terminal-prompt .tk-flag { color: #9DE0AD; }
+.terminal-prompt .tk-str  { color: var(--paper-soft); }
+.terminal-cursor {
+  display: inline-block;
+  color: var(--paper-soft);
+  animation: blink 0.9s steps(1) infinite;
+}
+@keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+
+/* ARROW between terminal and canvas */
+.demo-arrow {
+  background: var(--paper-deep);
+  border-bottom: 1px solid var(--rule);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  text-align: center;
+  position: relative;
+  transition: background 0.3s, color 0.3s;
+}
+.demo-shell[data-phase="composing"] .demo-arrow {
+  background: var(--vermillion);
+  color: var(--paper-soft);
+}
+.demo-arrow-label {
+  display: inline-block;
+  transition: opacity 0.3s;
+}
+
+/* CANVAS — where deck morphs in */
+.canvas {
+  position: relative;
+  background:
+    radial-gradient(70% 90% at 50% 50%, var(--paper-soft), var(--paper) 70%),
+    var(--paper);
+  aspect-ratio: 16 / 8;
+  overflow: hidden;
   isolation: isolate;
 }
 
-/* every element shares the same morph timing */
-.el {
+.output {
   position: absolute;
-  transition:
-    left var(--d-morph) var(--morph),
-    top  var(--d-morph) var(--morph),
-    transform var(--d-morph) var(--morph),
-    width var(--d-morph) var(--morph),
-    height var(--d-morph) var(--morph),
-    opacity 0.45s ease,
-    background var(--d-morph) var(--morph),
-    color var(--d-morph) var(--morph),
-    box-shadow var(--d-morph) var(--morph);
-  transform: translate(-50%, -50%) scale(var(--s, 1));
-  white-space: nowrap;
+  inset: 0;
   opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
 }
 
-/* WORDMARK */
-.el-wordmark {
+/* show one output per cycle when phase is playing */
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"],
+.demo-shell[data-cycle="1"][data-phase="playing"] .output[data-output="B"],
+.demo-shell[data-cycle="2"][data-phase="playing"] .output[data-output="C"] {
+  opacity: 1;
+}
+/* during typing phase, hint the upcoming output with a faint preview */
+.demo-shell[data-cycle="0"][data-phase="typing"] .output[data-output="A"],
+.demo-shell[data-cycle="1"][data-phase="typing"] .output[data-output="B"],
+.demo-shell[data-cycle="2"][data-phase="typing"] .output[data-output="C"] {
+  opacity: 0.06;
+}
+
+/* shared caption used by every output */
+.ax-cap {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: clamp(0.8rem, 1.5vw, 1.15rem);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  animation: cap-in 0.6s var(--morph) 4.5s forwards;
+}
+
+/* Each output's elements animate when their .output is visible.
+   We retrigger by toggling .output—running on the JS side. */
+
+/* ================== OUTPUT A — Cinematic launch film ================== */
+
+.ax-wordmark {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
@@ -225,22 +386,22 @@ main { position: relative; z-index: 1; }
   font-weight: 700;
   letter-spacing: -0.025em;
   color: var(--ink);
-  opacity: 1;
+  opacity: 0;
 }
-.el-wordmark .el-wordmark-mark { color: var(--vermillion); transition: color var(--d-morph) var(--morph), transform var(--d-morph) var(--morph); }
-.el-wordmark .el-wordmark-text {
-  font-size: clamp(1.4rem, 5vw, 3.5rem);
+.ax-wordmark svg { color: var(--vermillion); }
+.ax-wordmark-text {
+  font-size: clamp(1.6rem, 5.5vw, 3.6rem);
   background: linear-gradient(120deg, var(--ink) 30%, var(--vermillion-deep) 65%, var(--ink) 95%);
   background-size: 200% 100%;
   background-position: 0% 50%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  transition: font-size var(--d-morph) var(--morph), background-position 1.4s ease;
+  transition: font-size var(--d-morph) var(--morph), background-position 1.2s ease;
 }
 
-/* CHIPS — width & font scale with frame so a row of five fits at any size. */
-.el-chip {
+.ax-prim {
+  position: absolute;
   background: var(--paper-soft);
   border: 1px solid var(--rule);
   padding: clamp(0.32rem, 0.7vw, 0.5rem) clamp(0.55rem, 1.1vw, 0.85rem);
@@ -250,291 +411,171 @@ main { position: relative; z-index: 1; }
   text-transform: uppercase;
   letter-spacing: clamp(0.08em, 0.2vw, 0.16em);
   box-shadow: var(--shadow-sm);
-  opacity: 1;
+  color: var(--ink-soft);
+  transform: translate(-50%, -50%) scale(0.8);
+  opacity: 0;
 }
-.el-chip-slack  { color: #B8861E; }
-.el-chip-github { color: var(--ink); }
-.el-chip-notion { color: var(--ink); }
-.el-chip-linear { color: #4F49B5; }
-.el-chip-drive  { color: #1A6FE0; }
+.ax-prim-1 { color: var(--vermillion-deep); left: 50%; top: 18%; }
+.ax-prim-2 { left: 80%; top: 32%; }
+.ax-prim-3 { left: 80%; top: 68%; }
+.ax-prim-4 { left: 20%; top: 68%; }
+.ax-prim-5 { color: var(--teal); left: 20%; top: 32%; }
 
-/* BRIEF
-   Width and font scale to the frame so the card never crowds the chips.
-   max-width uses % so it's relative to .layer (i.e. the frame), not the
-   viewport — important because the frame can be ~70% of the viewport. */
-.el-brief {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 0.5rem;
-  row-gap: 0.25rem;
-  background: var(--paper-soft);
-  border: 1px solid var(--rule);
-  padding: clamp(0.6rem, 1.5vw, 0.95rem) clamp(0.75rem, 1.6vw, 1.2rem);
-  border-radius: var(--radius-md);
-  font-family: var(--font-mono);
-  font-size: clamp(0.7rem, 1.4vw, 0.95rem);
-  line-height: 1.45;
-  box-shadow: var(--shadow-md);
-  max-width: min(70%, 620px);
-  white-space: normal;
-  text-align: left;
+/* When output A is "playing", trigger the choreography:
+   wordmark in → primitives orbit in → caption fades in */
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"] .ax-wordmark {
+  animation: a-wordmark-in 1.0s var(--morph) 0s forwards;
 }
-.el-brief .el-brief-text { display: inline; }
-.el-brief .el-brief-prompt { color: var(--vermillion-deep); flex-shrink: 0; }
-.el-brief .el-brief-text  { color: var(--ink); }
-.el-brief .el-brief-cursor {
-  color: var(--vermillion);
-  animation: blink 0.9s steps(1) infinite;
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"] .ax-prim {
+  animation: a-prim-in 0.7s var(--morph) forwards;
 }
-@keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"] .ax-prim-1 { animation-delay: 0.4s; }
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"] .ax-prim-2 { animation-delay: 0.55s; }
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"] .ax-prim-3 { animation-delay: 0.7s; }
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"] .ax-prim-4 { animation-delay: 0.85s; }
+.demo-shell[data-cycle="0"][data-phase="playing"] .output[data-output="A"] .ax-prim-5 { animation-delay: 1.0s; }
 
-/* CODE CARD */
-.el-code {
-  width: min(82%, 560px);
-  background: var(--ink);
-  color: var(--paper-soft);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  font-family: var(--font-mono);
+@keyframes a-wordmark-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
-.el-code pre { font-size: clamp(0.62rem, 1.05vw, 0.82rem); padding: clamp(0.6rem, 1.2vw, 0.95rem) clamp(0.75rem, 1.4vw, 1.1rem); }
-.el-code .el-code-head {
-  background: rgba(255, 201, 60, 0.10);
-  color: var(--paper-soft);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.45rem 0.85rem;
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
+@keyframes a-prim-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
-.el-code .el-code-head span { color: var(--chrome); }
-.el-code pre {
-  background: var(--ink);
-  border: 0;
-  border-radius: 0;
-  padding: 0.85rem 1rem;
-  font-size: 0.78rem;
-  line-height: 1.55;
-}
-.el-code .kw  { color: #FFC93C; }
-.el-code .va  { color: #FF8A6E; }
-.el-code .str { color: #9DE0AD; }
-.el-code .num { color: #BFD7EA; }
-.el-code .ty  { color: #BFD7EA; }
 
-/* OUTPUT CARDS — width hugs frame so 3 cards never overlap (centers at
-   19/50/81%, gap = 31% of frame; card half-width must stay < 15.5%). */
-.el-out {
-  width: clamp(110px, 28%, 240px);
+/* ================== OUTPUT B — Roadmap pipeline ================== */
+
+.bx-rail {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--rule) 12%, var(--rule) 88%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.bx-tile {
+  position: absolute;
+  top: 50%;
+  width: clamp(110px, 18%, 200px);
   background: var(--paper-soft);
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
-  padding: clamp(0.55rem, 1.2vw, 0.95rem) clamp(0.7rem, 1.4vw, 1.1rem);
+  padding: clamp(0.55rem, 1.1vw, 0.85rem) clamp(0.7rem, 1.3vw, 1rem);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
   text-align: left;
-  white-space: normal;
   box-shadow: var(--shadow-sm);
+  transform: translate(-50%, -50%) translateY(20px);
+  opacity: 0;
 }
-.el-out strong { font-size: clamp(0.78rem, 1.2vw, 1rem); }
-.el-out em     { font-size: clamp(0.65rem, 1vw, 0.78rem); }
-.el-out .el-out-tag { font-size: clamp(0.56rem, 0.9vw, 0.66rem); }
-.el-out .el-out-tag {
+.bx-tile-1 { left: 19%; }
+.bx-tile-2 { left: 39%; }
+.bx-tile-3 { left: 59%; }
+.bx-tile-4 { left: 79%; }
+.bx-tile-now {
+  border-color: var(--vermillion);
+  box-shadow: 0 0 0 3px rgba(255,77,46,0.12), var(--shadow-md);
+}
+.bx-tile-q {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: clamp(0.58rem, 0.95vw, 0.7rem);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--vermillion-deep);
 }
-.el-out strong {
+.bx-tile strong {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: clamp(0.78rem, 1.2vw, 0.96rem);
   color: var(--ink);
 }
-.el-out em {
+.bx-tile em {
   font-style: normal;
-  font-size: 0.78rem;
+  font-size: clamp(0.62rem, 1vw, 0.76rem);
   color: var(--muted);
 }
 
-/* EXAMPLE TILES — width-capped so a 24-char name like
-   "stacklink-roundone-pitch" cannot overlap its grid neighbour
-   on narrow viewports. */
-.el-ex {
-  background: var(--paper-soft);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
-  font-family: var(--font-mono);
-  font-size: clamp(0.6rem, 1.1vw, 0.74rem);
-  letter-spacing: 0.04em;
-  color: var(--ink);
-  box-shadow: var(--shadow-sm);
-  max-width: clamp(140px, 28%, 240px);
-  overflow: hidden;
-  text-overflow: ellipsis;
+.demo-shell[data-cycle="1"][data-phase="playing"] .output[data-output="B"] .bx-rail {
+  animation: b-rail-in 0.8s var(--morph) 0.1s forwards;
 }
-.el-ex-1 { color: var(--vermillion-deep); }
+.demo-shell[data-cycle="1"][data-phase="playing"] .output[data-output="B"] .bx-tile {
+  animation: b-tile-in 0.7s var(--morph) forwards;
+}
+.demo-shell[data-cycle="1"][data-phase="playing"] .output[data-output="B"] .bx-tile-1 { animation-delay: 0.6s; }
+.demo-shell[data-cycle="1"][data-phase="playing"] .output[data-output="B"] .bx-tile-2 { animation-delay: 1.1s; }
+.demo-shell[data-cycle="1"][data-phase="playing"] .output[data-output="B"] .bx-tile-3 { animation-delay: 1.6s; }
+.demo-shell[data-cycle="1"][data-phase="playing"] .output[data-output="B"] .bx-tile-4 { animation-delay: 2.1s; }
 
-/* INSTALL CARD */
-.el-install {
-  background: var(--ink);
-  color: var(--paper-soft);
-  padding: clamp(0.7rem, 1.4vw, 1.1rem) clamp(0.9rem, 1.6vw, 1.4rem);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  box-shadow: var(--shadow-lg);
-  max-width: min(85%, 520px);
+@keyframes b-rail-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
-.el-install code { font-size: clamp(0.66rem, 1vw, 0.86rem); white-space: nowrap; overflow-x: auto; }
-.el-install .el-install-tag {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--chrome);
-}
-.el-install code {
-  background: rgba(255, 201, 60, 0.08);
-  border: 1px solid rgba(255, 201, 60, 0.18);
-  color: var(--paper-soft);
-  font-size: 0.84rem;
-  padding: 0.35rem 0.55rem;
-  border-radius: var(--radius-sm);
-}
-.el-install em {
-  font-style: normal;
-  color: var(--chrome);
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
+@keyframes b-tile-in {
+  from { opacity: 0; transform: translate(-50%, -50%) translateY(20px); }
+  to   { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
 }
 
-/* ===========================================================
-   SCENE STATE MACHINE — data-scene drives every persistent el.
-   By default, every el is hidden. Each scene block enables only
-   the elements that scene needs and pins them to a layout.
-   =========================================================== */
+/* ================== OUTPUT C — 5-slide pitch deck ================== */
 
-/* default-hide everything except the wordmark, which morphs through every scene */
-.film-frame .el { opacity: 0; pointer-events: none; }
-.film-frame .el.el-wordmark { opacity: 1; }
-
-/* SCENE 0 — your stack knows everything */
-.film-frame[data-scene="0"] .el-wordmark {
-  left: 50%; top: 48%;
-}
-.film-frame[data-scene="0"] .el-wordmark .el-wordmark-text { font-size: clamp(2rem, 7vw, 4.6rem); }
-.film-frame[data-scene="0"] .el-chip { opacity: 1; }
-.film-frame[data-scene="0"] .el-chip-slack  { left: 50%; top: 18%; transform: translate(-50%, -50%) rotate(-2deg); }
-.film-frame[data-scene="0"] .el-chip-github { left: 80%; top: 32%; transform: translate(-50%, -50%) rotate(3deg); }
-.film-frame[data-scene="0"] .el-chip-notion { left: 80%; top: 68%; transform: translate(-50%, -50%) rotate(-1deg); }
-.film-frame[data-scene="0"] .el-chip-linear { left: 20%; top: 68%; transform: translate(-50%, -50%) rotate(2deg); }
-.film-frame[data-scene="0"] .el-chip-drive  { left: 20%; top: 32%; transform: translate(-50%, -50%) rotate(-3deg); }
-
-/* SCENE 1 — give it a brief
-   Chips sit on a row above the caption; they cannot collide with the
-   bottom caption strip (which lives at bottom: 8% ≈ top: 92%). */
-.film-frame[data-scene="1"] .el-wordmark {
-  left: 50%; top: 16%;
-}
-.film-frame[data-scene="1"] .el-wordmark .el-wordmark-text { font-size: clamp(1rem, 2.6vw, 1.6rem); }
-.film-frame[data-scene="1"] .el-brief { opacity: 1; left: 50%; top: 50%; }
-.film-frame[data-scene="1"] .el-chip { opacity: 0.55; }
-.film-frame[data-scene="1"] .el-chip-slack  { left: 14%; top: 76%; transform: translate(-50%, -50%) rotate(0deg); }
-.film-frame[data-scene="1"] .el-chip-github { left: 32%; top: 76%; transform: translate(-50%, -50%) rotate(0deg); }
-.film-frame[data-scene="1"] .el-chip-notion { left: 50%; top: 76%; transform: translate(-50%, -50%) rotate(0deg); }
-.film-frame[data-scene="1"] .el-chip-linear { left: 68%; top: 76%; transform: translate(-50%, -50%) rotate(0deg); }
-.film-frame[data-scene="1"] .el-chip-drive  { left: 86%; top: 76%; transform: translate(-50%, -50%) rotate(0deg); }
-
-/* SCENE 2 — composer writes the deck */
-.film-frame[data-scene="2"] .el-wordmark { left: 50%; top: 14%; }
-.film-frame[data-scene="2"] .el-wordmark .el-wordmark-text { font-size: clamp(1rem, 2.4vw, 1.4rem); }
-.film-frame[data-scene="2"] .el-code { opacity: 1; left: 50%; top: 56%; }
-.film-frame[data-scene="2"] .el-chip { opacity: 0; }
-
-/* SCENE 3 — elements morph (chips dance) */
-.film-frame[data-scene="3"] .el-wordmark { left: 50%; top: 14%; }
-.film-frame[data-scene="3"] .el-wordmark .el-wordmark-text { font-size: clamp(1rem, 2.4vw, 1.4rem); }
-.film-frame[data-scene="3"] .el-chip { opacity: 1; }
-.film-frame[data-scene="3"] .el-chip-slack  { left: 18%; top: 56%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="3"] .el-chip-github { left: 36%; top: 56%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="3"] .el-chip-notion { left: 54%; top: 56%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="3"] .el-chip-linear { left: 72%; top: 56%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="3"] .el-chip-drive  { left: 88%; top: 56%; transform: translate(-50%, -50%); }
-
-/* SCENE 4 — three outputs */
-.film-frame[data-scene="4"] .el-wordmark { left: 50%; top: 14%; }
-.film-frame[data-scene="4"] .el-wordmark .el-wordmark-text { font-size: clamp(1rem, 2.4vw, 1.4rem); }
-.film-frame[data-scene="4"] .el-out { opacity: 1; }
-.film-frame[data-scene="4"] .el-out-live { left: 19%; top: 56%; }
-.film-frame[data-scene="4"] .el-out-mp4  { left: 50%; top: 56%; }
-.film-frame[data-scene="4"] .el-out-pptx { left: 81%; top: 56%; }
-
-/* SCENE 5 — twelve starters (showing 8 representative tiles) */
-.film-frame[data-scene="5"] .el-wordmark { left: 50%; top: 14%; }
-.film-frame[data-scene="5"] .el-wordmark .el-wordmark-text { font-size: clamp(1rem, 2.4vw, 1.4rem); }
-.film-frame[data-scene="5"] .el-ex { opacity: 1; }
-.film-frame[data-scene="5"] .el-ex-1 { left: 25%; top: 38%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="5"] .el-ex-2 { left: 50%; top: 38%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="5"] .el-ex-3 { left: 75%; top: 38%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="5"] .el-ex-4 { left: 25%; top: 54%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="5"] .el-ex-5 { left: 50%; top: 54%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="5"] .el-ex-6 { left: 75%; top: 54%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="5"] .el-ex-7 { left: 33%; top: 70%; transform: translate(-50%, -50%); }
-.film-frame[data-scene="5"] .el-ex-8 { left: 67%; top: 70%; transform: translate(-50%, -50%); }
-
-/* SCENE 6 — outro
-   Install card pinned high enough to never collide with the bottom
-   caption strip (which sits at top ~85-92% depending on caption length). */
-.film-frame[data-scene="6"] .el-wordmark { left: 50%; top: 32%; }
-.film-frame[data-scene="6"] .el-wordmark .el-wordmark-text { font-size: clamp(1.8rem, 6vw, 4rem); background-position: 100% 50%; }
-.film-frame[data-scene="6"] .el-install { opacity: 1; left: 50%; top: 64%; }
-
-/* CAPTIONS */
-.caption {
-  position: absolute;
-  left: 0; right: 0;
-  bottom: 8%;
-  text-align: center;
-  pointer-events: none;
-  z-index: 5;
-  padding: 0 1rem;
-}
-.caption-text {
+.cx-card {
   position: absolute;
   left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: clamp(0.95rem, 1.8vw, 1.3rem);
-  color: var(--ink-soft);
-  letter-spacing: -0.01em;
-  white-space: nowrap;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  width: clamp(220px, 60%, 540px);
+  background: var(--paper-soft);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: clamp(1rem, 2.5vw, 2rem) clamp(1.25rem, 3vw, 2.4rem);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
   opacity: 0;
-  transition: opacity 0.3s ease;
 }
-.caption-text strong {
-  font-style: normal;
-  font-weight: 700;
+.cx-card-tag {
+  font-family: var(--font-mono);
+  font-size: clamp(0.62rem, 0.95vw, 0.74rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--vermillion-deep);
 }
-.film-frame[data-scene="0"] .caption-text[data-scene="0"],
-.film-frame[data-scene="1"] .caption-text[data-scene="1"],
-.film-frame[data-scene="2"] .caption-text[data-scene="2"],
-.film-frame[data-scene="3"] .caption-text[data-scene="3"],
-.film-frame[data-scene="4"] .caption-text[data-scene="4"],
-.film-frame[data-scene="5"] .caption-text[data-scene="5"],
-.film-frame[data-scene="6"] .caption-text[data-scene="6"] { opacity: 1; }
+.cx-card strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1rem, 1.8vw, 1.5rem);
+  color: var(--ink);
+  line-height: 1.2;
+}
 
-/* CONTROLS BAR (mirrors ?dev=1 dev scrubber) */
+/* Each card holds for ~1.1s, fading through with FLIP-style overlap.
+   Because they all share left/top center pos, motion appears as a stack
+   morph (one source, restyled) — exactly how cinemorph deck primitives
+   carry a stable layoutId across stages. */
+.demo-shell[data-cycle="2"][data-phase="playing"] .output[data-output="C"] .cx-card {
+  animation: c-card 5.5s linear forwards;
+}
+.demo-shell[data-cycle="2"][data-phase="playing"] .output[data-output="C"] .cx-card-1 { animation-delay: 0s; }
+.demo-shell[data-cycle="2"][data-phase="playing"] .output[data-output="C"] .cx-card-2 { animation-delay: 1.1s; }
+.demo-shell[data-cycle="2"][data-phase="playing"] .output[data-output="C"] .cx-card-3 { animation-delay: 2.2s; }
+.demo-shell[data-cycle="2"][data-phase="playing"] .output[data-output="C"] .cx-card-4 { animation-delay: 3.3s; }
+.demo-shell[data-cycle="2"][data-phase="playing"] .output[data-output="C"] .cx-card-5 { animation-delay: 4.4s; }
+
+@keyframes c-card {
+  0%   { opacity: 0; transform: translate(-50%, -50%) translateX(40px); }
+  4%   { opacity: 1; transform: translate(-50%, -50%) translateX(0); }
+  18%  { opacity: 1; transform: translate(-50%, -50%) translateX(0); }
+  22%  { opacity: 0; transform: translate(-50%, -50%) translateX(-40px); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translateX(-40px); }
+}
+
+/* CONTROLS */
 .film-controls {
   margin-top: 0.85rem;
   display: flex;
@@ -590,45 +631,42 @@ main { position: relative; z-index: 1; }
 }
 .film-clock #filmClock { color: var(--ink); }
 
-.film-scenes {
+.film-cycles {
   display: flex;
   gap: 0.2rem;
   flex-wrap: wrap;
 }
-.film-scenes button {
+.film-cycles button {
   font: inherit;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  padding: 0.3rem 0.55rem;
+  font-size: clamp(0.62rem, 0.9vw, 0.72rem);
+  padding: 0.3rem 0.65rem;
   border: 1px solid var(--rule);
   background: var(--paper);
   color: var(--ink);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.film-scenes button[aria-current="true"] {
+.film-cycles button[aria-current="true"] {
   background: var(--ink);
   color: var(--paper-soft);
   border-color: var(--ink);
 }
-.film-scenes button:hover {
+.film-cycles button:hover {
   border-color: var(--vermillion);
   color: var(--vermillion-deep);
 }
-.film-scenes button[aria-current="true"]:hover {
-  color: var(--paper-soft);
-}
+.film-cycles button[aria-current="true"]:hover { color: var(--paper-soft); }
 
 .film-hint {
   text-align: center;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   margin: 1.5rem auto 0;
-  max-width: 60ch;
+  max-width: 64ch;
 }
-.film-hint em { font-style: italic; color: var(--ink); }
 .film-hint code {
   background: var(--ink);
   color: var(--paper-soft);
@@ -688,10 +726,7 @@ main { position: relative; z-index: 1; }
   padding: 1.5rem;
   transition: border-color 0.2s, transform 0.2s;
 }
-.card:hover {
-  border-color: var(--vermillion);
-  transform: translateY(-2px);
-}
+.card:hover { border-color: var(--vermillion); transform: translateY(-2px); }
 .card .tag {
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -705,11 +740,7 @@ main { position: relative; z-index: 1; }
   font-weight: 600;
   margin: 0.4rem 0 0.65rem;
 }
-.card p {
-  color: var(--muted);
-  font-size: 0.94rem;
-  margin: 0 0 1rem;
-}
+.card p { color: var(--muted); font-size: 0.94rem; margin: 0 0 1rem; }
 .card pre { font-size: 0.78rem; }
 
 /* PIPELINE */
@@ -731,8 +762,7 @@ main { position: relative; z-index: 1; }
   position: absolute;
   top: -0.7rem;
   left: 1.25rem;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.7rem; height: 1.7rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -800,7 +830,7 @@ main { position: relative; z-index: 1; }
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
   padding: 1.25rem 1.4rem;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s;
 }
 .lesson:hover { border-color: var(--vermillion); }
 .lesson h4 {
@@ -827,7 +857,7 @@ main { position: relative; z-index: 1; }
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   font-size: 0.92rem;
-  transition: border-color 0.18s, transform 0.18s, background 0.18s;
+  transition: border-color 0.18s, transform 0.18s;
 }
 .example strong {
   font-family: var(--font-mono);
@@ -835,15 +865,11 @@ main { position: relative; z-index: 1; }
   color: var(--vermillion-deep);
 }
 .example span { color: var(--muted); font-size: 0.86rem; }
-.example:hover {
-  transform: translateY(-1px);
-  border-color: var(--vermillion);
-}
+.example:hover { transform: translateY(-1px); border-color: var(--vermillion); }
 .example.accent {
   background: linear-gradient(180deg, rgba(255,77,46,0.06), rgba(255,201,60,0.06));
   border-color: var(--vermillion);
 }
-.example.accent strong { color: var(--vermillion-deep); }
 
 /* INSTALL */
 .install { text-align: center; }
@@ -917,15 +943,8 @@ main { position: relative; z-index: 1; }
   font-size: 0.92rem;
 }
 .foot-links a:hover { color: var(--vermillion-deep); }
-.foot-meta {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0;
-}
-.foot-meta a {
-  color: var(--ink);
-  border-bottom: 1px dashed var(--rule);
-}
+.foot-meta { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.foot-meta a { color: var(--ink); border-bottom: 1px dashed var(--rule); }
 
 /* MOTION RESPECT */
 @media (prefers-reduced-motion: reduce) {
@@ -936,7 +955,7 @@ main { position: relative; z-index: 1; }
   .film-progress span { transition: none; }
 }
 
-/* SCROLL REVEAL (modern browsers only) */
+/* SCROLL REVEAL */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .section, .card, .lesson, .example, .pipeline .stage, .steps li {

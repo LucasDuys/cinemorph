@@ -4,7 +4,7 @@
 
 export const DATA = {
   product: {
-    name: 'Cinemorph',
+    name:    'Cinemorph',
     tagline: 'a Claude Code plugin',
     url:     'lucasduys.github.io/cinemorph',
     install: 'cp -r plugin ~/.claude/plugins/cinemorph'
@@ -12,23 +12,37 @@ export const DATA = {
 
   // Scene captions (S1 → S7)
   captions: {
-    hook:     'your stack already knows everything.',
-    brief:    'give it a brief.',
-    composer: 'the composer writes the deck.',
-    morph:    'elements morph between stages.',
-    outputs:  'three outputs. one source of truth.',
+    hook:     'decks that morph.',
+    brief:    'it starts with a brief.',
+    composer: 'the composer writes stages.ts and data.ts.',
+    morph:    'FLIP morphs. no keyframes.',
+    outputs:  'live deck · MP4 · PowerPoint Morph.',
     examples: 'twelve starters. yours next.',
     outro:    null   // outro caption is rendered as wordmark + tagline pair
   },
 
-  // S2 — typed prompt
+  // S1 — primitive labels orbiting the wordmark.
+  // These are real primitives the engine knows how to render
+  // (see plugin/primitives/). They show what Cinemorph composes.
+  primitives: [
+    { id: 'wordmark', label: 'wordmark', accent: true  },
+    { id: 'kpi',      label: 'kpi',      accent: false },
+    { id: 'orbit',    label: 'orbit',    accent: false },
+    { id: 'pipeline', label: 'pipeline', accent: false },
+    { id: 'card',     label: 'card',     accent: false }
+  ],
+
+  // S2 — typed prompt. Generic-enough that it works for any user;
+  // intentionally avoids any specific product or vertical.
   brief: {
-    command: '/cinemorph new --prompt',
-    text:    'Series A pitch: problem, solution, traction, team, ask',
+    command:  '/cinemorph new --prompt',
+    text:     '30-second cinematic launch film for our new product',
     typingMs: 3400   // matches SFX TYPING window (4200ms → 7600ms)
   },
 
-  // S3 — composer-generated stages.ts snippet (5 lines max for legibility)
+  // S3 — composer-generated stages.ts snippet (5 lines max for legibility).
+  // Shows two FLIP-tracked positions of the same wordmark id; this is
+  // the entire surface area of the morph engine in one screenful.
   stagesTsSample: [
     "export const STAGES = [",
     "  { id: 'hook',   wordmark: { left: '50%', top: '50%' } },",
@@ -37,16 +51,10 @@ export const DATA = {
     "];"
   ].join('\n'),
 
-  // S4 — connector chips that line up at scene 4
-  connectors: [
-    { id: 'slack',  label: 'slack' },
-    { id: 'github', label: 'github' },
-    { id: 'notion', label: 'notion' },
-    { id: 'linear', label: 'linear' },
-    { id: 'drive',  label: 'drive' }
-  ],
+  // S4 — same primitives as S1, now lined up across the middle.
+  // Visual: identical ids, different positions → automatic FLIP morph.
 
-  // S5 — three output cards
+  // S5 — three production targets.
   outputs: [
     {
       id:    'live',
@@ -68,16 +76,16 @@ export const DATA = {
     }
   ],
 
-  // S6 — eight representative example tiles (out of twelve total)
+  // S6 — eight representative example tiles (out of twelve total).
   examples: [
-    { id: 'launch',   label: 'launch-cinematic-30s',     accent: true },
-    { id: 'stacklink',label: 'stacklink-roundone-pitch'              },
-    { id: 'pitch5',   label: 'pitch-5slide'                          },
-    { id: 'feature',  label: 'feature-demo'                          },
-    { id: 'kpi',      label: 'kpi-dashboard-tour'                    },
-    { id: 'case',     label: 'case-study'                            },
-    { id: 'manifest', label: 'manifesto'                             },
-    { id: 'team',     label: 'team-intro'                            }
+    { id: 'launch',    label: 'launch-cinematic-30s',     accent: true },
+    { id: 'stacklink', label: 'stacklink-roundone-pitch'              },
+    { id: 'pitch5',    label: 'pitch-5slide'                          },
+    { id: 'feature',   label: 'feature-demo'                          },
+    { id: 'kpi',       label: 'kpi-dashboard-tour'                    },
+    { id: 'case',      label: 'case-study'                            },
+    { id: 'manifest',  label: 'manifesto'                             },
+    { id: 'team',      label: 'team-intro'                            }
   ]
 } as const;
 
