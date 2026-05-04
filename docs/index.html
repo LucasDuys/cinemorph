@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Cinemorph — prompts that morph into decks</title>
-    <meta name="description" content="A Claude Code plugin. Write a brief, watch the composer turn it into a Vite + React deck where every element morphs between stages via shared-layout (FLIP) transitions. Live deck, MP4, or PowerPoint with native Morph." />
+    <title>Cinemorph — sixteen elements, eight compositions, zero keyframes</title>
+    <meta name="description" content="A Claude Code plugin. Same elements, eight radically different layouts. Watch sixteen primitives morph through orbit, pipeline, grid, cards, and constellation — all without a single per-element keyframe." />
     <meta property="og:title" content="Cinemorph" />
-    <meta property="og:description" content="Prompts that morph into decks. A Claude Code plugin." />
+    <meta property="og:description" content="Sixteen elements. Eight compositions. Zero keyframes." />
     <meta name="theme-color" content="#F4EFE3" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -43,120 +43,54 @@
       <section class="hero-title">
         <p class="kicker">a Claude Code plugin · v1.1.0</p>
         <h1>
-          Prompts that <em>morph</em><br />
-          into decks.
+          Sixteen elements.<br />
+          Eight compositions.<br />
+          <em>Zero keyframes.</em>
         </h1>
         <p class="lede">
-          Cinemorph composes a Vite + React deck from a brief. Every element
-          carries a stable id and morphs cleanly between stages via shared-layout
-          (FLIP) transitions. Live deck, MP4 with audio bus, or PowerPoint with
-          native Microsoft&nbsp;Morph — same source, three outputs.
+          Cinemorph composes Vite + React decks where every persistent element
+          carries a stable id and morphs cleanly between stages via
+          shared-layout (FLIP) transitions. Watch the same sixteen primitives
+          rearrange themselves below — no per-element animations defined,
+          just eight different layouts of the same source.
         </p>
       </section>
 
-      <!-- LIVE PROMPT → ANIMATION DEMO -->
-      <section class="film" aria-label="Cinemorph live demo: prompt to animation">
-        <div class="demo-shell" id="demoShell" data-cycle="0" data-phase="typing">
+      <!-- THE BIG MORPH -->
+      <section class="film" aria-label="Cinemorph live morph demo">
+        <div class="canvas" id="canvas" data-stage="0">
+          <!-- ambient bloom (per-stage colour) -->
+          <div class="bloom-1" aria-hidden="true"></div>
+          <div class="bloom-2" aria-hidden="true"></div>
 
-          <!-- TOP: terminal with the prompt being typed -->
-          <div class="terminal" aria-hidden="true">
-            <div class="terminal-head">
-              <span class="terminal-dots"><i></i><i></i><i></i></span>
-              <span class="terminal-title">claude code · /cinemorph</span>
-              <span class="terminal-status" id="terminalStatus">writing…</span>
-            </div>
-            <div class="terminal-body">
-              <span class="terminal-prefix">›</span>
-              <span class="terminal-prompt" id="terminalPrompt"></span>
-              <span class="terminal-cursor" aria-hidden="true">▍</span>
-            </div>
+          <!-- the 16 persistent cells. JS sets per-stage style on each. -->
+          <!-- (rendered by script.js so we never duplicate the markup) -->
+
+          <!-- WORDMARK overlay — its own persistent element -->
+          <div class="ws" id="ws" aria-hidden="true">
+            <svg class="ws-mark" viewBox="0 0 28 28" aria-hidden="true">
+              <g fill="currentColor">
+                <rect x="11" y="2"  width="6" height="6" />
+                <rect x="3"  y="10" width="6" height="6" />
+                <rect x="11" y="10" width="6" height="6" />
+                <rect x="19" y="10" width="6" height="6" />
+                <rect x="11" y="18" width="6" height="6" />
+              </g>
+            </svg>
+            <span class="ws-text">Cinemorph</span>
           </div>
 
-          <!-- ARROW INTO CANVAS -->
-          <div class="demo-arrow" aria-hidden="true">
-            <span class="demo-arrow-label">composer →</span>
+          <!-- per-stage caption -->
+          <div class="cap" id="cap"></div>
+
+          <!-- stage strip top-right showing "stage 03 / 08 — Pipeline" -->
+          <div class="stage-tag">
+            <span class="stage-tag-num"><b id="stageNum">01</b><i>/ 08</i></span>
+            <span class="stage-tag-name" id="stageName">seed</span>
           </div>
-
-          <!-- BOTTOM: canvas where the deck morphs in -->
-          <div class="canvas" id="canvas">
-
-            <!-- Cycle A: 30-second cinematic launch film -->
-            <div class="output" data-output="A">
-              <div class="ax-wordmark">
-                <svg viewBox="0 0 28 28" width="34" height="34" aria-hidden="true">
-                  <g fill="currentColor">
-                    <rect x="11" y="2"  width="6" height="6" />
-                    <rect x="3"  y="10" width="6" height="6" />
-                    <rect x="11" y="10" width="6" height="6" />
-                    <rect x="19" y="10" width="6" height="6" />
-                    <rect x="11" y="18" width="6" height="6" />
-                  </g>
-                </svg>
-                <span class="ax-wordmark-text">Cinemorph</span>
-              </div>
-              <div class="ax-prim ax-prim-1">wordmark</div>
-              <div class="ax-prim ax-prim-2">kpi</div>
-              <div class="ax-prim ax-prim-3">orbit</div>
-              <div class="ax-prim ax-prim-4">pipeline</div>
-              <div class="ax-prim ax-prim-5">card</div>
-              <div class="ax-cap">cinematic launch · 30 s · audio bus + scrubber</div>
-            </div>
-
-            <!-- Cycle B: Q3 roadmap pipeline -->
-            <div class="output" data-output="B">
-              <div class="bx-rail" aria-hidden="true"></div>
-              <div class="bx-tile bx-tile-1">
-                <span class="bx-tile-q">Q1</span>
-                <strong>Foundations</strong>
-                <em>auth · billing</em>
-              </div>
-              <div class="bx-tile bx-tile-2">
-                <span class="bx-tile-q">Q2</span>
-                <strong>Mobile beta</strong>
-                <em>iOS · Android</em>
-              </div>
-              <div class="bx-tile bx-tile-3 bx-tile-now">
-                <span class="bx-tile-q">Q3</span>
-                <strong>Live now</strong>
-                <em>realtime · search</em>
-              </div>
-              <div class="bx-tile bx-tile-4">
-                <span class="bx-tile-q">Q4</span>
-                <strong>Enterprise</strong>
-                <em>SSO · SCIM · audit</em>
-              </div>
-              <div class="ax-cap">roadmap · pipeline morph · 4 milestone tiles</div>
-            </div>
-
-            <!-- Cycle C: 5-slide investor pitch -->
-            <div class="output" data-output="C">
-              <div class="cx-card cx-card-1">
-                <span class="cx-card-tag">01 · HOOK</span>
-                <strong>The category is broken.</strong>
-              </div>
-              <div class="cx-card cx-card-2">
-                <span class="cx-card-tag">02 · PROBLEM</span>
-                <strong>Teams ship slow because tooling is split.</strong>
-              </div>
-              <div class="cx-card cx-card-3">
-                <span class="cx-card-tag">03 · SOLUTION</span>
-                <strong>One canvas. Every primitive. Every stage.</strong>
-              </div>
-              <div class="cx-card cx-card-4">
-                <span class="cx-card-tag">04 · TRACTION</span>
-                <strong>4× faster decks · 100 % FLIP-tracked.</strong>
-              </div>
-              <div class="cx-card cx-card-5">
-                <span class="cx-card-tag">05 · ASK</span>
-                <strong>Series A, $8M. EU&nbsp;sovereign.</strong>
-              </div>
-              <div class="ax-cap">5-slide pitch · click-through · PPTX with Morph</div>
-            </div>
-          </div>
-
         </div>
 
-        <!-- prompt cycle controls -->
+        <!-- controls -->
         <div class="film-controls">
           <button class="film-play" id="filmPlay" type="button" aria-label="Play / pause">
             <svg class="ico-play"  viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M3 2 L13 8 L3 14 Z" /></svg>
@@ -164,17 +98,14 @@
           </button>
           <div class="film-progress" id="filmProgress"><span></span></div>
           <div class="film-clock"><span id="filmClock">00:00</span><em> / 00:30</em></div>
-          <div class="film-cycles" id="filmCycles" role="tablist" aria-label="Prompts">
-            <button type="button" data-cycle="0">launch film</button>
-            <button type="button" data-cycle="1">roadmap</button>
-            <button type="button" data-cycle="2">pitch deck</button>
-          </div>
+          <div class="film-stages" id="filmStages" role="tablist" aria-label="Stages"></div>
         </div>
 
         <p class="film-hint">
-          Three prompts. Three deck shapes. Same engine. Click a prompt to jump to it,
-          or generate the same artefact yourself with
-          <code>/cinemorph new --from-example cinemorph-about-30s</code>.
+          Each stage is one entry in a <code>stages.ts</code> file. Sixteen
+          element ids carry across all eight — <strong>no per-element
+          animation defined anywhere.</strong> Framer Motion's shared-layout
+          algorithm computes every transition automatically.
         </p>
       </section>
 
@@ -266,7 +197,7 @@
 
         <p class="sub center">
           Hook → reveal: the wordmark shrinks and slides up; the kpi and pillar
-          drift outward; the pipeline fades in. One synchronized 700 ms transition.
+          drift outward; the pipeline fades in. One synchronised 700 ms transition.
           <strong>No code per element.</strong>
         </p>
       </section>
