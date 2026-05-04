@@ -1,47 +1,123 @@
-// Cinemorph site — minimal interactive bits.
-// (1) Live morph demo: toggles the canvas between the two stages so visitors
-//     can see how shared layout (FLIP-style) drives the entire transition.
-// (2) Auto-loop the demo on a timer so the page is alive even if the visitor
-//     never clicks. Pauses while the tab is hidden to be considerate.
+/**
+ * 30-second cinematic state machine.
+ * Mirrors cinemorph's RAF-clock pattern:
+ *   - one master clock writes elapsedMs
+ *   - phases are non-overlapping 4-second windows
+ *   - the canvas's data-scene attribute drives layouts via CSS
+ *   - scrubber reflects elapsedMs / TOTAL_MS
+ *
+ * The film auto-plays on load, pauses when off-screen, and supports
+ * play/pause + per-scene jumping (mirrors the dev scrubber buttons).
+ */
 
 (() => {
-  const canvas = document.getElementById('demoCanvas');
-  const button = document.getElementById('demoToggle');
-  if (!canvas || !button) return;
+  const frame = document.getElementById('filmFrame');
+  if (!frame) return;
 
-  const STAGES = ['hook', 'reveal'];
-  let idx = 0;
-  let timer = null;
+  const playBtn  = document.getElementById('filmPlay');
+  const progress = document.getElementById('filmProgress')?.querySelector('span');
+  const clock    = document.getElementById('filmClock');
+  const scenesBar = document.getElementById('filmScenes');
 
-  const setStage = (i) => {
-    idx = (i + STAGES.length) % STAGES.length;
-    canvas.dataset.stage = STAGES[idx];
-    button.textContent = idx === 0 ? 'Toggle stage →' : '← Back to hook';
+  const SCENE_DUR_MS = 4000;
+  const SCENE_COUNT  = 7;
+  const TOTAL_MS     = SCENE_DUR_MS * SCENE_COUNT;
+
+  let elapsedMs = 0;
+  let lastTickMs = null;
+  let raf = null;
+  let playing = true;
+  let inView = true;
+
+  // build scene buttons (S0 … S6)
+  const sceneButtons = [];
+  if (scenesBar) {
+    for (let i = 0; i < SCENE_COUNT; i++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'S' + String(i + 1).padStart(2, '0');
+      btn.setAttribute('aria-label', `Jump to scene ${i + 1}`);
+      btn.addEventListener('click', () => seekToScene(i));
+      scenesBar.appendChild(btn);
+      sceneButtons.push(btn);
+    }
+  }
+
+  const fmt = (ms) => {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const m = String(Math.floor(total / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
+    return `${m}:${s}`;
   };
 
-  const tick = () => setStage(idx + 1);
+  const applyClock = () => {
+    const sceneIdx = Math.min(SCENE_COUNT - 1, Math.floor(elapsedMs / SCENE_DUR_MS));
+    if (frame.dataset.scene !== String(sceneIdx)) {
+      frame.dataset.scene = String(sceneIdx);
+      sceneButtons.forEach((b, i) => b.setAttribute('aria-current', i === sceneIdx ? 'true' : 'false'));
+    }
+    if (progress) progress.style.width = (Math.min(1, elapsedMs / TOTAL_MS) * 100).toFixed(2) + '%';
+    if (clock) clock.textContent = fmt(elapsedMs);
+  };
 
-  const start = () => { stop(); timer = setInterval(tick, 2400); };
-  const stop  = () => { if (timer) clearInterval(timer); timer = null; };
+  const tick = (ts) => {
+    if (lastTickMs == null) lastTickMs = ts;
+    const dt = ts - lastTickMs;
+    lastTickMs = ts;
+    if (playing && inView) {
+      elapsedMs += dt;
+      if (elapsedMs >= TOTAL_MS) elapsedMs = 0; // loop
+      applyClock();
+    }
+    raf = requestAnimationFrame(tick);
+  };
 
-  button.addEventListener('click', () => { stop(); tick(); start(); });
+  const setPlaying = (next) => {
+    playing = next;
+    if (playBtn) playBtn.dataset.playing = String(playing);
+    if (playing) lastTickMs = null;
+  };
 
-  // Pause loop when the user can't see the page.
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stop();
-    else start();
-  });
+  const seekToScene = (i) => {
+    elapsedMs = i * SCENE_DUR_MS;
+    applyClock();
+  };
 
-  // Pause when the demo scrolls out of view to save cycles on slow devices.
+  // play/pause
+  playBtn?.addEventListener('click', () => setPlaying(!playing));
+
+  // pause when scrolled off screen
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) start();
-        else stop();
-      }
-    }, { threshold: 0.3 });
-    io.observe(canvas);
-  } else {
-    start();
+      for (const entry of entries) inView = entry.isIntersecting;
+    }, { threshold: 0.25 });
+    io.observe(frame);
   }
+
+  // pause when tab hidden
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) inView = false;
+    else inView = true;
+  });
+
+  // keyboard nav (arrows / space)
+  document.addEventListener('keydown', (e) => {
+    const within = frame.matches(':hover') || frame.contains(document.activeElement);
+    if (!within && e.target !== document.body) return;
+    if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
+    else if (e.key === 'ArrowRight') {
+      const cur = Math.floor(elapsedMs / SCENE_DUR_MS);
+      seekToScene(Math.min(SCENE_COUNT - 1, cur + 1));
+    } else if (e.key === 'ArrowLeft') {
+      const cur = Math.floor(elapsedMs / SCENE_DUR_MS);
+      seekToScene(Math.max(0, cur - 1));
+    } else if (e.key === 'r' || e.key === 'R') {
+      seekToScene(0);
+    }
+  });
+
+  // start
+  setPlaying(true);
+  applyClock();
+  raf = requestAnimationFrame(tick);
 })();

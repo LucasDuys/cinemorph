@@ -1,22 +1,20 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Cinemorph — cinematic launch films and pitch decks from a brief</title>
-    <meta name="description" content="A Claude Code plugin that turns a written brief into a Vite + React deck where elements morph cleanly between stages. Live deck, MP4 with audio bus, or PPTX with native PowerPoint Morph." />
+    <meta name="description" content="A Claude Code plugin that turns a brief into a Vite + React deck where elements morph cleanly between stages. Live deck, MP4 with audio bus, or PPTX with native PowerPoint Morph." />
     <meta property="og:title" content="Cinemorph" />
     <meta property="og:description" content="Cinematic launch films and pitch decks from a brief — a Claude Code plugin." />
-    <meta property="og:image" content="assets/demos/storyboard/frame-08s.png" />
-    <meta name="theme-color" content="#09090F" />
+    <meta name="theme-color" content="#F4EFE3" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
-    <div class="bloom" aria-hidden="true"></div>
 
     <header class="nav">
       <a class="brand" href="#top" aria-label="Cinemorph home">
@@ -32,8 +30,8 @@
         <span>Cinemorph</span>
       </a>
       <nav>
-        <a href="#what">What it makes</a>
-        <a href="#how">How it works</a>
+        <a href="#film">The film</a>
+        <a href="#how">How</a>
         <a href="#examples">Examples</a>
         <a href="#install">Install</a>
         <a class="primary" href="https://github.com/LucasDuys/cinemorph" target="_blank" rel="noopener">GitHub →</a>
@@ -42,35 +40,116 @@
 
     <main id="top">
 
-      <!-- HERO -->
-      <section class="hero">
-        <p class="kicker">a Claude Code plugin · v1.1.0</p>
-        <h1>
-          From a brief<br />
-          to a <em>cinematic film</em>
-        </h1>
-        <p class="lede">
-          Cinemorph composes a Vite + React deck where persistent elements morph cleanly
-          between stages via shared-layout (FLIP) transitions. Run it live, export it as
-          a Playwright-recorded MP4, or hand it off as PowerPoint with native Morph.
-        </p>
+      <!-- 30-SECOND CINEMATIC ABOUT CINEMORPH ITSELF -->
+      <section id="film" class="film" aria-label="30-second cinematic about Cinemorph">
+        <div class="film-frame" id="filmFrame" data-scene="0" style="--t: 0">
 
-        <div class="cta-row">
-          <a class="btn primary" href="#install">Install in 30 seconds</a>
-          <a class="btn ghost" href="assets/demos/launch-video.mp4">Watch the 30 s film ↗</a>
+          <!-- persistent layer: every element carries a layoutId and morphs scene-to-scene -->
+          <div class="layer">
+            <!-- WORDMARK -->
+            <div class="el el-wordmark" data-id="wordmark">
+              <svg viewBox="0 0 28 28" width="32" height="32" aria-hidden="true" class="el-wordmark-mark">
+                <g fill="currentColor">
+                  <rect x="11" y="2"  width="6" height="6" />
+                  <rect x="3"  y="10" width="6" height="6" />
+                  <rect x="11" y="10" width="6" height="6" />
+                  <rect x="19" y="10" width="6" height="6" />
+                  <rect x="11" y="18" width="6" height="6" />
+                </g>
+              </svg>
+              <span class="el-wordmark-text">Cinemorph</span>
+            </div>
+
+            <!-- ORBIT CHIPS (scene 0) -->
+            <div class="el el-chip el-chip-slack"  data-id="chip-slack">slack</div>
+            <div class="el el-chip el-chip-github" data-id="chip-github">github</div>
+            <div class="el el-chip el-chip-notion" data-id="chip-notion">notion</div>
+            <div class="el el-chip el-chip-linear" data-id="chip-linear">linear</div>
+            <div class="el el-chip el-chip-drive"  data-id="chip-drive">drive</div>
+
+            <!-- BRIEF (scene 1+) -->
+            <div class="el el-brief" data-id="brief">
+              <span class="el-brief-prompt">/cinemorph new --prompt</span>
+              <span class="el-brief-text" id="briefText">Series&nbsp;A pitch: problem, solution, traction, team, ask</span>
+              <span class="el-brief-cursor" aria-hidden="true">▍</span>
+            </div>
+
+            <!-- CODE CARD (scene 2) -->
+            <div class="el el-code" data-id="code">
+              <div class="el-code-head">stages.ts <span>composer-generated</span></div>
+              <pre><code><span class="kw">export const</span> <span class="va">STAGES</span> = [
+  { id: <span class="str">'hook'</span>,   wordmark: { left: <span class="num">'50%'</span>, top: <span class="num">'50%'</span> } },
+  { id: <span class="str">'reveal'</span>, wordmark: { left: <span class="num">'50%'</span>, top: <span class="num">'14%'</span> } },
+  { id: <span class="str">'outro'</span>,  wordmark: { left: <span class="num">'50%'</span>, top: <span class="num">'50%'</span> } },
+];</code></pre>
+            </div>
+
+            <!-- OUTPUT CARDS (scene 4) -->
+            <div class="el el-out el-out-live" data-id="out-live">
+              <span class="el-out-tag">Live deck</span>
+              <strong>Vite + React</strong>
+              <em>localhost:5173 · hot reload · ?dev=1 scrubber</em>
+            </div>
+            <div class="el el-out el-out-mp4" data-id="out-mp4">
+              <span class="el-out-tag">MP4</span>
+              <strong>Playwright + ffmpeg</strong>
+              <em>30 s film · audio bus · smear cuts · aeBounce</em>
+            </div>
+            <div class="el el-out el-out-pptx" data-id="out-pptx">
+              <span class="el-out-tag">PPTX</span>
+              <strong>Native Microsoft Morph</strong>
+              <em>editable handoff · Office 2019+ · 365</em>
+            </div>
+
+            <!-- EXAMPLE TILES (scene 5) -->
+            <div class="el el-ex el-ex-1" data-id="ex-1">launch-cinematic-30s</div>
+            <div class="el el-ex el-ex-2" data-id="ex-2">stacklink-roundone-pitch</div>
+            <div class="el el-ex el-ex-3" data-id="ex-3">pitch-5slide</div>
+            <div class="el el-ex el-ex-4" data-id="ex-4">feature-demo</div>
+            <div class="el el-ex el-ex-5" data-id="ex-5">kpi-dashboard-tour</div>
+            <div class="el el-ex el-ex-6" data-id="ex-6">case-study</div>
+            <div class="el el-ex el-ex-7" data-id="ex-7">manifesto</div>
+            <div class="el el-ex el-ex-8" data-id="ex-8">team-intro</div>
+
+            <!-- INSTALL CARD (scene 6) -->
+            <div class="el el-install" data-id="install">
+              <span class="el-install-tag">install</span>
+              <code>cp -r plugin ~/.claude/plugins/cinemorph</code>
+              <em>lucasduys.github.io/cinemorph</em>
+            </div>
+          </div>
+
+          <!-- on-canvas captions, scene-keyed -->
+          <div class="caption">
+            <span class="caption-text" data-scene="0">your stack knows everything.</span>
+            <span class="caption-text" data-scene="1">give it a brief.</span>
+            <span class="caption-text" data-scene="2">the composer writes the deck.</span>
+            <span class="caption-text" data-scene="3">elements morph between stages.</span>
+            <span class="caption-text" data-scene="4">three outputs. one source of truth.</span>
+            <span class="caption-text" data-scene="5">twelve starters. yours next.</span>
+            <span class="caption-text" data-scene="6"><strong>Cinemorph.</strong> &nbsp;a Claude Code plugin.</span>
+          </div>
         </div>
 
-        <figure class="hero-video">
-          <video autoplay muted loop playsinline preload="metadata" poster="assets/demos/storyboard/frame-08s.png">
-            <source src="assets/demos/launch-video.mp4" type="video/mp4" />
-            <img src="assets/demos/launch-video-preview.gif" alt="30-second cinematic launch film generated by Cinemorph" />
-          </video>
-          <figcaption>One <code>stages.ts</code>, one <code>data.ts</code>, sixteen primitives. Composer wrote both.</figcaption>
-        </figure>
+        <!-- scrubber + scene buttons (mirrors cinemorph's ?dev=1 dev scrubber) -->
+        <div class="film-controls">
+          <button class="film-play" id="filmPlay" type="button" aria-label="Play / pause">
+            <svg class="ico-play"  viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M3 2 L13 8 L3 14 Z" /></svg>
+            <svg class="ico-pause" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M3 2 H6 V14 H3 Z M10 2 H13 V14 H10 Z" /></svg>
+          </button>
+          <div class="film-progress" id="filmProgress"><span></span></div>
+          <div class="film-clock"><span id="filmClock">00:00</span><em> / 00:30</em></div>
+          <div class="film-scenes" id="filmScenes" role="tablist" aria-label="Scenes"></div>
+        </div>
+
+        <p class="film-hint">
+          What you're watching <em>is</em> a Cinemorph deck — same FLIP morph engine, hand-rolled in 200 lines of CSS.
+          Render the same artifact to MP4 with <code>/cinemorph new --from-example cinemorph-about-30s</code>.
+        </p>
       </section>
 
       <!-- WHAT IT MAKES -->
-      <section id="what" class="section">
+      <section class="section">
         <p class="kicker">three production targets, one source of truth</p>
         <h2>What it makes</h2>
 
@@ -78,74 +157,24 @@
           <article class="card">
             <span class="tag">Live deck</span>
             <h3>Vite + React + motion/react</h3>
-            <p>
-              Hot reload. Keyboard nav. <code>?dev=1</code> for the timeline scrubber.
-              The deck is the artifact — open it in Chrome on the projector and click through.
-            </p>
-            <pre><code>bun install && bun run dev
-# → localhost:5173</code></pre>
+            <p>Hot reload. Keyboard nav. <code>?dev=1</code> for the timeline scrubber. The deck is the artifact — open it in Chrome on the projector and click through.</p>
+            <pre><code>bun install &amp;&amp; bun run dev
+<span class="cmt"># → localhost:5173</span></code></pre>
           </article>
 
           <article class="card">
             <span class="tag">MP4</span>
             <h3>Playwright + ffmpeg</h3>
-            <p>
-              30-second to 5-minute cinematic film. Audio bus mixes music bed, voiceover,
-              and SFX cues. Smear cuts on real scene transitions. <code>aeBounce</code> on every
-              element that lands with weight.
-            </p>
+            <p>30-second to 5-minute cinematic film. Audio bus mixes a music bed, voiceover, and SFX cues. Smear cuts on real scene transitions. <code>aeBounce</code> on every element that lands with weight.</p>
             <pre><code>/cinemorph video --out launch.mp4</code></pre>
           </article>
 
           <article class="card">
             <span class="tag">PPTX</span>
             <h3>Native Microsoft Morph</h3>
-            <p>
-              Editable PowerPoint with native Morph transitions between slides. For
-              stakeholders that don't ship from a browser. Compatible with Office 2019+
-              and Microsoft 365.
-            </p>
+            <p>Editable PowerPoint with native Morph transitions between slides. For stakeholders that don't ship from a browser. Compatible with Office 2019+ and Microsoft 365.</p>
             <pre><code>/cinemorph pptx --out pitch.pptx</code></pre>
           </article>
-        </div>
-      </section>
-
-      <!-- STORYBOARD -->
-      <section class="section storyboard">
-        <p class="kicker">the hero film, frame by frame</p>
-        <h2>30 seconds. One canvas. No cuts.</h2>
-        <p class="sub">
-          Every primitive carries a stable <code>layoutId</code> across stages.
-          Framer Motion's shared-layout (FLIP) algorithm computes the layout-to-layout
-          delta automatically — no keyframes, no per-property <code>animate</code> props,
-          no easing math.
-        </p>
-
-        <div class="storyboard-grid">
-          <figure>
-            <img src="assets/demos/storyboard/frame-01s.png" alt="Stacklink wordmark + logo lockup" loading="lazy" />
-            <figcaption><span>00:01</span> Logo pop · <code>aeBounce</code></figcaption>
-          </figure>
-          <figure>
-            <img src="assets/demos/storyboard/frame-08s.png" alt="Search query with sources at corners" loading="lazy" />
-            <figcaption><span>00:08</span> Hyper-zoom · search lands</figcaption>
-          </figure>
-          <figure>
-            <img src="assets/demos/storyboard/frame-13s.png" alt="every tool. one brain. caption with cylinder substrate" loading="lazy" />
-            <figcaption><span>00:13</span> "every tool. one brain."</figcaption>
-          </figure>
-          <figure>
-            <img src="assets/demos/storyboard/frame-18s.png" alt="Onboarding card lands" loading="lazy" />
-            <figcaption><span>00:18</span> Onboarding lands</figcaption>
-          </figure>
-          <figure>
-            <img src="assets/demos/storyboard/frame-22s.png" alt="Agent constellation around the substrate" loading="lazy" />
-            <figcaption><span>00:22</span> "more coming. same brain."</figcaption>
-          </figure>
-          <figure>
-            <img src="assets/demos/storyboard/frame-28s.png" alt="Outro logo + URL chime" loading="lazy" />
-            <figcaption><span>00:28</span> Outro + URL chime</figcaption>
-          </figure>
         </div>
       </section>
 
@@ -209,20 +238,6 @@
           Hook → reveal: the wordmark shrinks and slides up; chips drift outward; the
           cylinder fades in. One synchronized 700 ms transition. <strong>No code per element.</strong>
         </p>
-
-        <!-- LIVE MORPH DEMO -->
-        <div class="demo-shell">
-          <div class="demo-head">
-            <span>live demo</span>
-            <button id="demoToggle" type="button">Toggle stage →</button>
-          </div>
-          <div class="demo-canvas" id="demoCanvas" data-stage="hook">
-            <div class="m-el m-wordmark" data-id="wordmark">Cinemorph</div>
-            <div class="m-el m-chip m-chip-slack" data-id="slack">slack</div>
-            <div class="m-el m-chip m-chip-drive" data-id="drive">drive</div>
-            <div class="m-el m-cylinder" data-id="cylinder"></div>
-          </div>
-        </div>
       </section>
 
       <!-- LESSONS -->
@@ -230,8 +245,8 @@
         <p class="kicker">earned the hard way</p>
         <h2>Cinematic-launch-video lessons baked in</h2>
         <p class="sub">
-          Every rule below was earned by shipping the hero film and getting each detail
-          wrong before getting it right. The composer applies them automatically.
+          Every rule below was earned by shipping a real 30-second film and getting each
+          detail wrong before getting it right. The composer applies them automatically.
         </p>
 
         <div class="grid two">
@@ -277,6 +292,10 @@
         <p class="sub">Generate any of these with <code>/cinemorph new --from-example &lt;name&gt;</code>. Each ships its own <code>brief.md</code> as documentation by example.</p>
 
         <div class="example-grid">
+          <a class="example accent" href="https://github.com/LucasDuys/cinemorph/tree/main/plugin/examples/cinemorph-about-30s" target="_blank" rel="noopener">
+            <strong>cinemorph-about-30s</strong>
+            <span>The film you just watched. Cinemorph telling its own story in 30 seconds.</span>
+          </a>
           <a class="example" href="https://github.com/LucasDuys/cinemorph/tree/main/plugin/examples/launch-cinematic-30s" target="_blank" rel="noopener">
             <strong>launch-cinematic-30s</strong>
             <span>RAF-clock driven 30 s film. Audio bus, SFX, autoplay gate, dev scrubber.</span>
@@ -326,15 +345,6 @@
             <span>Reference for registering your own primitive.</span>
           </a>
         </div>
-
-        <h3 class="sub-h">Pitch-deck reference render</h3>
-        <div class="pitch-grid">
-          <figure><img src="assets/demos/pitch-deck/01-hook.png" alt="Pitch slide 1: hook" loading="lazy" /><figcaption>1. Hook</figcaption></figure>
-          <figure><img src="assets/demos/pitch-deck/02-problem.png" alt="Pitch slide 2: problem" loading="lazy" /><figcaption>2. Problem</figcaption></figure>
-          <figure><img src="assets/demos/pitch-deck/03-solution.png" alt="Pitch slide 3: solution" loading="lazy" /><figcaption>3. Solution</figcaption></figure>
-          <figure><img src="assets/demos/pitch-deck/04-differentiation.png" alt="Pitch slide 4: differentiation" loading="lazy" /><figcaption>4. Differentiation</figcaption></figure>
-          <figure><img src="assets/demos/pitch-deck/05-team-ask.png" alt="Pitch slide 5: team and ask" loading="lazy" /><figcaption>5. Team & Ask</figcaption></figure>
-        </div>
       </section>
 
       <!-- INSTALL -->
@@ -351,11 +361,11 @@ cp -r cinemorph/plugin ~/.claude/plugins/cinemorph</code></pre>
           <li>
             <strong>Restart Claude Code, then generate a deck.</strong>
             <pre><code><span class="cmt"># In a Claude Code chat:</span>
-/cinemorph new --from-example launch-cinematic-30s --out my-launch-video</code></pre>
+/cinemorph new --from-example cinemorph-about-30s --out my-cinemorph-film</code></pre>
           </li>
           <li>
             <strong>Run it.</strong>
-            <pre><code>cd my-launch-video
+            <pre><code>cd my-cinemorph-film
 bun install &amp;&amp; bun run dev   <span class="cmt"># → http://localhost:5173</span>
 <span class="cmt">#                              ?dev=1 for the timeline scrubber</span></code></pre>
           </li>
@@ -388,8 +398,8 @@ bun install &amp;&amp; bun run dev   <span class="cmt"># → http://localhost:51
           <a href="https://github.com/LucasDuys/cinemorph/blob/main/LICENSE" target="_blank" rel="noopener">MIT</a>
         </div>
         <p class="foot-meta">
-          Built with Cinemorph's own visual language.
-          A Claude Code plugin by <a href="https://github.com/LucasDuys" target="_blank" rel="noopener">Lucas Duys</a>.
+          This site is itself a Cinemorph artefact — same FLIP morph engine, hand-rolled.
+          Built by <a href="https://github.com/LucasDuys" target="_blank" rel="noopener">Lucas Duys</a>.
         </p>
       </footer>
 
