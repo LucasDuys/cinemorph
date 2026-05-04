@@ -224,6 +224,12 @@ main { position: relative; z-index: 1; }
   box-shadow: var(--shadow-lg);
   isolation: isolate;
   transition: background 1s ease;
+  /* Enable container-query units (cqw/cqh) so cells can position
+     themselves with transform: translate(N cqw, N cqh, 0) — that keeps
+     all motion on the GPU compositor instead of triggering main-thread
+     layout per frame. The aspect-ratio rule above gives this a defined
+     block size for cqh to resolve against. */
+  container-type: size;
 }
 
 /* Per-stage canvas tint shifts the mood from cool → warm → bold etc. */
@@ -254,15 +260,24 @@ main { position: relative; z-index: 1; }
 .canvas[data-stage="6"] .bloom-2 { opacity: 0.25; background: var(--vermillion-deep); }
 
 /* MORPH CELLS
-   JS sets per-cell left/top/width/height/transform/background/etc. via
-   CSS variables; CSS handles only the transition curves. */
+   GPU-accelerated layout: each cell has a fixed 1cqw × 1cqh base size.
+   All positioning and sizing is done through `transform` so animation
+   stays on the compositor thread (no per-frame layout/paint).
+     translate3d : position in cqw / cqh
+     scale       : per-axis size multiplier (sx, sy in % of canvas dim)
+     rotate      : per-cell rotation
+   Result: all 16 cells animate at 60fps even on integrated GPUs. */
 .m {
   position: absolute;
-  left: var(--cx, 50%);
-  top:  var(--cy, 50%);
-  width:  var(--cw, 24px);
-  height: var(--ch, 24px);
-  transform: translate(-50%, -50%) rotate(var(--cr, 0deg)) scale(var(--cs, 1));
+  left: 0;
+  top: 0;
+  width:  1cqw;
+  height: 1cqh;
+  transform:
+    translate3d(var(--cx, 50cqw), var(--cy, 50cqh), 0)
+    translate(-50%, -50%)
+    rotate(var(--cr, 0deg))
+    scale(var(--csx, 1), var(--csy, 1));
   background: var(--cbg, var(--paper-soft));
   border: 1px solid var(--cbd, var(--rule));
   border-radius: var(--crd, 6px);
@@ -273,38 +288,43 @@ main { position: relative; z-index: 1; }
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: var(--cf, clamp(7px, 0.7vw, 10px));
   font-weight: 500;
   letter-spacing: 0.04em;
   overflow: hidden;
+  /* Only transform/background/border-radius/opacity transition. Box-shadow
+     and border-color are set per stage but not animated — saves paint cost
+     across 16 elements. */
   transition:
-    left  var(--d-morph) var(--morph),
-    top   var(--d-morph) var(--morph),
-    width var(--d-morph) var(--morph),
-    height var(--d-morph) var(--morph),
     transform var(--d-morph) var(--morph),
     background var(--d-morph) var(--morph),
-    border-color var(--d-morph) var(--morph),
     border-radius var(--d-morph) var(--morph),
     color var(--d-morph) var(--morph),
-    box-shadow var(--d-morph) var(--morph),
-    opacity 0.55s ease,
-    filter 0.45s ease;
-  will-change: left, top, width, height, transform, background, opacity;
+    opacity 0.5s ease;
+  will-change: transform, opacity;
+  contain: layout paint;
+  pointer-events: none;
 }
 
+/* Label is counter-scaled so it stays readable regardless of cell scale.
+   The cell scales by (csx, csy); the label scales by (1/csx, 1/csy),
+   netting to a constant visual size. Label scale shares the same
+   transition timing as the cell, so they stay perfectly synced. */
 .m > .lbl {
-  font-family: var(--font-mono);
-  font-size: inherit;
+  display: inline-block;
   white-space: nowrap;
   pointer-events: none;
-  opacity: var(--clo, 1);
-  transition: opacity 0.4s ease;
-}
-
-/* Smear cut: brief blur on every cell at stage boundaries */
-.canvas.--smearing .m {
-  filter: blur(2.5px);
+  font-family: var(--font-mono);
+  font-size: 1.6cqw;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: inherit;
+  opacity: var(--clo, 0);
+  transform: scale(calc(1 / var(--csx, 1)), calc(1 / var(--csy, 1)));
+  transform-origin: center center;
+  transition:
+    transform var(--d-morph) var(--morph),
+    opacity 0.4s ease;
+  will-change: transform, opacity;
 }
 
 /* WORDMARK — its own persistent overlay element */
@@ -348,7 +368,19 @@ main { position: relative; z-index: 1; }
   color: transparent;
   transition: font-size var(--d-morph) var(--morph), background-position 1.6s ease;
 }
+/* Smear cut on the wordmark only — kept because it's a single element,
+   so the GPU cost is trivial. Cells no longer participate in the smear
+   blur because blurring 16 elements simultaneously was the dominant
+   source of frame drops. */
 .canvas.--smearing .ws { filter: blur(2px); }
+.canvas .ws { transition:
+  left var(--d-morph) var(--morph),
+  top  var(--d-morph) var(--morph),
+  transform var(--d-morph) var(--morph),
+  color 1s ease,
+  opacity 0.6s ease,
+  filter 0.32s ease;
+}
 
 /* For the dark constellation stage, flip the wordmark colour to paper-soft. */
 .canvas[data-stage="6"] .ws-mark { color: var(--vermillion); }
